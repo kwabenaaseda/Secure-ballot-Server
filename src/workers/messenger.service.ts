@@ -3,8 +3,10 @@
 // Status: API key pending — will be activated when Arkesel 
 //         captcha issue is resolved
 
-const ARKESEL_API_KEY = process.env.ARKESEL_API_KEY || '';
-const ARKESEL_SENDER_ID = process.env.ARKESEL_SENDER_ID || 'SecureBall';
+import { ENV } from "./env_validater";
+
+const ARKESEL_API_KEY = ENV("ARKESEL_API_KEY") || '';
+const ARKESEL_SENDER_ID = ENV("ARKESEL_SENDER_ID") || 'SecureBall';
 const ARKESEL_BASE_URL = 'https://sms.arkesel.com/api/v2/sms/send';
 
 interface SMSPayload {

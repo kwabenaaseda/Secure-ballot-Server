@@ -1,7 +1,8 @@
 import { Resend } from 'resend';
+import { ENV } from './env_validater';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-const MAIL_FROM = process.env.MAIL_FROM || 'onboarding@resend.dev';
+const resend = new Resend(ENV("RESEND_API_KEY"));
+const MAIL_FROM = ENV("MAIL_FROM") || 'onboarding@resend.dev';
 
 // ─── TYPES ───────────────────────────────────────────
 interface WelcomeEmailPayload {

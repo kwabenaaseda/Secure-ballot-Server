@@ -1,15 +1,16 @@
 // TypeOrm Setup
 import { DataSource } from "typeorm";
 import dotenv from 'dotenv';
+import { ENV } from "../workers/env_validater";
 dotenv.config()
 
 export const AppDataSource = new DataSource({
     type: "postgres",
-    host: process.env.DB_HOST || "localhost",
-    port: parseInt(process.env.DB_PORT || "5432", 10),
-    username: process.env.DB_USERNAME || 'secureballot_user',
-    password: process.env.DB_PASSWORD || 'secureballot_secure_pass',
-    database: process.env.DB_NAME || 'secureballot_dev',
+    host: ENV("DATABASE_HOST") || "127.0.0.1",
+    port: parseInt(ENV("DATABASE_PORT") || "5432", 10),
+    username: ENV("DATABASE_USERNAME") || 'secureballot_user',
+    password: ENV("DATABASE_PASSWORD") || 'secureballot_secure_pass',
+    database: ENV("DATABASE_NAME") || 'secureballot_dev',
     synchronize: true,
     logging: true,
     entities: ['src/entities/*.ts'],

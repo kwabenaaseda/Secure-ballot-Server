@@ -1,4 +1,4 @@
-export interface SignupPayload {
+/* export interface SignupPayload {
     // Identity
     username: string
 
@@ -13,4 +13,18 @@ export interface SignupPayload {
     date_of_birth: string
     nationality_code: string
     occupation: string
-}
+} */
+
+import { z } from 'zod';
+
+export const SignupSchema = z.object({
+  username:         z.string().min(3).max(30),
+  email:            z.string().email(),
+  telephone:        z.string().min(10).max(15),
+  password:         z.string().min(8),
+  date_of_birth:    z.string(),
+  nationality_code: z.string().optional().default(""),
+  occupation:       z.string().optional().default(""),
+});
+
+export type SignupPayload = z.infer<typeof SignupSchema>;
