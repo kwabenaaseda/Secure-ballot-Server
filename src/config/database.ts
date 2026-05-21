@@ -12,7 +12,7 @@ export const AppDataSource = new DataSource({
     password: ENV("DATABASE_PASSWORD") || 'secureballot_secure_pass',
     database: ENV("DATABASE_NAME") || 'secureballot_dev',
     synchronize: true,
-    logging: true,
+    logging: false,
     entities: ['src/entities/*.ts'],
     migrations: ['src/migrations/*.ts'],
     subscribers: [],

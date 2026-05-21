@@ -24,6 +24,19 @@ export async function Signup_Operation(
       occupation,
     } = payload;
 
+      // ── STEP 1B: VALIDATE REQUIRED FIELDS ───────────────
+      if (!email || !username || !telephone || !password) {
+        return {
+          _OPS_STATS: "OPERATION FAILURE",
+          _OPS_META: {
+            _timestamp: CLOCK(),
+            _event: "SIGNUP",
+            _source: Signup_Operation.name,
+          },
+          success: false,
+          _OPS_MESSAGE: "All fields are required.",
+        };
+      }
     // ── STEP 2: CHECK USER UNIQUENESS ───────────────────────
     const userRepository = AppDataSource.getRepository(User);
 

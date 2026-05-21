@@ -1,6 +1,6 @@
 import Router from 'express'
 import type{Request, Response} from 'express'
-import { Signup_Controller } from '../../../controllers/authentication/auth_user.controller'
+import { Login_Controller, Signup_Controller } from '../../../controllers/authentication/auth_user.controller'
 import { ENV } from '../../../workers/env_validater'
 
 const Auth_user = Router()
@@ -17,5 +17,6 @@ Auth_user.get('/', async (req:Request, res:Response)=>{
 })
 
 Auth_user.post("/signup",Signup_Controller)
+Auth_user.post('/login',Login_Controller)
 
 export default Auth_user
