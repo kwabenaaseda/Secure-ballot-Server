@@ -4,6 +4,7 @@ import { Signup_Operation } from '../../services/auth_mod_sys_users/signup';
 import { Log } from '../../utils/Logger';
 import { LoginSchema } from '../../services/auth_mod_sys_users/login/types';
 import { Login_Operation } from '../../services/auth_mod_sys_users/login';
+import { VerifyOTP_Operation } from '../../services/auth_mod_sys_users/otp_verify';
 
 export async function Signup_Controller(req: Request, res: Response) {
   // Validate input
@@ -57,5 +58,31 @@ export async function Login_Controller(req: Request, res: Response) {
     success: true,
     message: result._OPS_MESSAGE,
     data: result._OPS_DATA,
+  });
+}
+
+export async function VerifyOTP_Controller(req: Request, res: Response) {
+  const { otp } = req.body;
+  const userId = req.user?.id; // From JWT middleware
+
+  if (!otp || !userId) {
+    return res.status(400).json({
+      success: false,
+      message: "OTP is required.",
+    });
+  }
+
+  const result = await VerifyOTP_Operation(userId, otp);
+
+  if (!result.success) {
+    return res.status(400).json({
+      success: false,
+      message: result._OPS_MESSAGE,
+    });
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: result._OPS_MESSAGE,
   });
 }
