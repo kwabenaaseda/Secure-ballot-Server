@@ -17,16 +17,16 @@ export class Candidate {
   fullname: string;
  
   @Column({ type: 'varchar', nullable: true })
-  image: string;
+  image: string | null;
  
   @Column({ type: 'text', nullable: true })
-  summary: string;
+  summary: string | null;
  
   @Column({ type: 'text', nullable: true })
-  manifesto: string;
+  manifesto: string | null;
  
   @Column({ type: 'varchar', nullable: true })
-  nationality: string;
+  nationality: string | null;
  
   @Column({ type: 'varchar' })
   category: string;                // Which category they're running in

@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'bun:test';
+import { randomUUID } from 'crypto';
 import { AppDataSource } from "../../../../config/database";
 import { Signup_Operation } from "../index";
 import { User } from "../../../../entities/User";
@@ -25,6 +26,18 @@ afterEach(async () => {
   await repo.delete({ telephone: "233000000003" });
 });
 
+// ─── MOCK NETWORK CONTEXT ──────────────────────────────
+// Real requests get this from NetworkContextMiddleware. Tests call
+// Signup_Operation directly, bypassing Express — so we build it by hand.
+function mockNetwork() {
+  return {
+    ip_hash: "test-ip-hash",
+    user_agent_class: "BROWSER" as const,
+    correlation_id: randomUUID(),
+    session_id: "NONE",
+  };
+}
+
 // ─── BASE PAYLOAD ─────────────────────────────────────
 const basePayload = {
   username: "testuser_sb",
@@ -34,6 +47,7 @@ const basePayload = {
   date_of_birth: "2000-01-01",
   nationality_code: "GH",
   occupation: "Engineer",
+  network: mockNetwork(),
 };
 
 // ─── TESTS ────────────────────────────────────────────
@@ -41,15 +55,15 @@ describe("Signup_Operation", () => {
 
   // ── HAPPY PATH ──────────────────────────────────────
   it("creates a new user successfully", async () => {
-    const result = await Signup_Operation(basePayload);
+    const result = await Signup_Operation({ ...basePayload, network: mockNetwork() });
 
     expect(result.success).toBe(true);
-    expect(result._OPS_STATS).toBe("COMPLETED");
-    expect(result._OPS_MESSAGE).toBe("SIGNUP SUCCESSFUL");
+    expect(result._OPS_STATUS).toBe("COMPLETED");
+    expect(result._OPS_MESSAGE).toBe("Signup successful. OTP sent to email and phone.");
   });
 
   it("returns a JWT token on success", async () => {
-    const result = await Signup_Operation(basePayload);
+    const result = await Signup_Operation({ ...basePayload, network: mockNetwork() });
 
     expect(result.success).toBe(true);
     if (result.success) {
@@ -61,7 +75,7 @@ describe("Signup_Operation", () => {
   });
 
   it("returns a refresh token on success", async () => {
-    const result = await Signup_Operation(basePayload);
+    const result = await Signup_Operation({ ...basePayload, network: mockNetwork() });
 
     expect(result.success).toBe(true);
     if (result.success) {
@@ -71,7 +85,7 @@ describe("Signup_Operation", () => {
   });
 
   it("returns user data without password hash", async () => {
-    const result = await Signup_Operation(basePayload);
+    const result = await Signup_Operation({ ...basePayload, network: mockNetwork() });
 
     expect(result.success).toBe(true);
     if (result.success) {
@@ -83,7 +97,7 @@ describe("Signup_Operation", () => {
   });
 
   it("sets verification_status to unverified on signup", async () => {
-    const result = await Signup_Operation(basePayload);
+    const result = await Signup_Operation({ ...basePayload, network: mockNetwork() });
 
     expect(result.success).toBe(true);
     if (result.success) {
@@ -94,12 +108,13 @@ describe("Signup_Operation", () => {
 
   // ── DUPLICATE DETECTION ──────────────────────────────
   it("rejects duplicate email", async () => {
-    await Signup_Operation(basePayload); // First signup
+    await Signup_Operation({ ...basePayload, network: mockNetwork() }); // First signup
 
     const result = await Signup_Operation({
       ...basePayload,
-      username: "different_user", // Different username
-      telephone: "233000000002",  // Different phone
+      username: "different_user",
+      telephone: "233000000002",
+      network: mockNetwork(),
       // Same email ← should fail
     });
 
@@ -108,12 +123,13 @@ describe("Signup_Operation", () => {
   });
 
   it("rejects duplicate username", async () => {
-    await Signup_Operation(basePayload); // First signup
+    await Signup_Operation({ ...basePayload, network: mockNetwork() });
 
     const result = await Signup_Operation({
       ...basePayload,
-      email: "duplicate@secureballot.dev", // Different email
-      telephone: "233000000003",            // Different phone
+      email: "duplicate@secureballot.dev",
+      telephone: "233000000003",
+      network: mockNetwork(),
       // Same username ← should fail
     });
 
@@ -122,12 +138,13 @@ describe("Signup_Operation", () => {
   });
 
   it("rejects duplicate telephone", async () => {
-    await Signup_Operation(basePayload); // First signup
+    await Signup_Operation({ ...basePayload, network: mockNetwork() });
 
     const result = await Signup_Operation({
       ...basePayload,
-      email: "duplicate@secureballot.dev", // Different email
-      username: "different_user2",          // Different username
+      email: "duplicate@secureballot.dev",
+      username: "different_user2",
+      network: mockNetwork(),
       // Same telephone ← should fail
     });
 
@@ -140,6 +157,7 @@ describe("Signup_Operation", () => {
     const result = await Signup_Operation({
       ...basePayload,
       password: "",
+      network: mockNetwork(),
     });
 
     expect(result.success).toBe(false);
@@ -149,6 +167,7 @@ describe("Signup_Operation", () => {
     const result = await Signup_Operation({
       ...basePayload,
       email: "",
+      network: mockNetwork(),
     });
 
     expect(result.success).toBe(false);
@@ -156,7 +175,7 @@ describe("Signup_Operation", () => {
 
   // ── DB VERIFICATION ──────────────────────────────────
   it("actually saves user to database", async () => {
-    await Signup_Operation(basePayload);
+    await Signup_Operation({ ...basePayload, network: mockNetwork() });
 
     const userRepo = AppDataSource.getRepository(User);
     const user = await userRepo.findOneBy({ email: basePayload.email });
@@ -167,7 +186,7 @@ describe("Signup_Operation", () => {
   });
 
   it("stores hashed password, not plain text", async () => {
-    await Signup_Operation(basePayload);
+    await Signup_Operation({ ...basePayload, network: mockNetwork() });
 
     const userRepo = AppDataSource.getRepository(User);
     const user = await userRepo.findOneBy({ email: basePayload.email });

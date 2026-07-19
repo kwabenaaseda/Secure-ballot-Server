@@ -70,25 +70,82 @@ ${div}
 
 // ─── PUBLIC API ───────────────────────────────────────
 export const Log = {
-  info:  (source: string, message: string, event: string) =>
+  info:  
+  /**
+   * ## Log.info()
+   * Log general information to the terminal
+   * 
+   * @param source 
+   * @param message 
+   * @param event 
+   * @returns 
+   */
+  (source: string, message: string, event: string) =>
     _log("INFO",  source, message, event),
 
-  warn:  (source: string, message: string | Error, event: string) =>
+  warn: 
+  /**
+   * 
+   * @param source 
+   * @param message 
+   * @param event 
+   * @returns 
+   */
+  (source: string, message: string | Error, event: string) =>
     _log("WARN",  source, message, event),
 
-  error: (source: string, message: string | Error, event: string) =>
+  error: 
+  /**
+   * 
+   * @param source 
+   * @param message 
+   * @param event 
+   * @returns 
+   */
+  (source: string, message: string | Error, event: string) =>
     _log("ERROR", source, message, event),
 
-  debug: (source: string, message: string | Error, event: string) =>
+  debug:
+  /**
+   * 
+   * @param source 
+   * @param message 
+   * @param event 
+   * @returns 
+   */
+  (source: string, message: string | Error, event: string) =>
     _log("DEBUG", source, message, event),
 
-  trace: (source: string, message: string, event: string) =>
+  trace:
+  /**
+   * 
+   * @param source 
+   * @param message 
+   * @param event 
+   * @returns 
+   */
+  (source: string, message: string, event: string) =>
     _log("TRACE", source, message, event),
 
-  guide: (source: string, message: string, event: string) =>
+  guide:
+  /**
+   * 
+   * @param source 
+   * @param message 
+   * @param event 
+   * @returns 
+   */
+  (source: string, message: string, event: string) =>
     _log("GUIDE", source, message, event),
 
-  fatal: (source: string, message: string | Error, event: string) => {
+  fatal: 
+  /**
+   * 
+   * @param source 
+   * @param message 
+   * @param event 
+   */
+  (source: string, message: string | Error, event: string) => {
     _log("FATAL", source, message, event);
     process.exit(1);
   },

@@ -3,7 +3,7 @@ import { initializeDatabase } from "./config/database";
 import app from "./app";
 import dotenv from 'dotenv'
 import { Log } from "./utils/Logger";
-import { ENV, VALIDATE_ENV } from "./workers/env_validater";
+import { ENV, VALIDATE_ENV } from "./workers/env_validator";
 
 // Initializations
 dotenv.config()

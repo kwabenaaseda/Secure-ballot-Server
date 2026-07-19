@@ -1,5 +1,5 @@
 import { Resend } from 'resend';
-import { ENV } from './env_validater';
+import { ENV } from './env_validator';
 
 const resend = new Resend(ENV("RESEND_API_KEY"));
 const MAIL_FROM = ENV("MAIL_FROM") || 'onboarding@resend.dev';
@@ -128,8 +128,50 @@ export async function sendPasswordResetEmail(payload: OTPEmailPayload) {
   return data;
 }
 
+// ─── SEND PASSWORD RESET EMAIL ────────────────────────
+export async function sendAccountRecoveryEmail(payload: OTPEmailPayload) {
+  const { to, username, otp } = payload;
+
+  const { data, error } = await resend.emails.send({
+    from: MAIL_FROM,
+    to,
+    subject: 'SecureBallot Account Recovery',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>Hi ${username},</h2>
+        <p>You requested a password reset. Your code is:</p>
+        <div style="
+          font-size: 36px;
+          font-weight: bold;
+          letter-spacing: 8px;
+          color: #1a1a2e;
+          background: #f4f4f4;
+          padding: 20px;
+          text-align: center;
+          border-radius: 8px;
+          margin: 20px 0;
+        ">
+          ${otp}
+        </div>
+        <p>This code expires in <strong>10 minutes</strong>.</p>
+        <p>If you didn't request this, secure your account immediately.</p>
+        <br/>
+        <p>— The SecureBallot Team</p>
+      </div>
+    `,
+  });
+
+  if (error) {
+    console.error('Password reset email error:', error);
+    throw new Error(`Failed to send password reset email: ${error.message}`);
+  }
+
+  return data;
+}
+
 export default {
   sendWelcomeEmail,
   sendOTPEmail,
   sendPasswordResetEmail,
+  sendAccountRecoveryEmail
 };

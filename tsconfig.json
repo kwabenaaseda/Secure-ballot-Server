@@ -23,8 +23,10 @@
     "rootDir": "./src",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "strictPropertyInitialization": false
+    "strictPropertyInitialization": false,
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
   },
-  "include": ["src/**/*", "scripts"],
+  "include": ["src/**/*", "src/scripts"],
   "exclude": ["node_modules", "dist"]
 }

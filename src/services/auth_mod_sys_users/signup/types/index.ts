@@ -16,6 +16,7 @@
 } */
 
 import { z } from 'zod';
+import { NetworkContext } from '../../../../lib/ops/ops.types';
 
 export const SignupSchema = z.object({
   username:         z.string().min(3).max(30),
@@ -27,4 +28,8 @@ export const SignupSchema = z.object({
   occupation:       z.string().optional().default(""),
 });
 
-export type SignupPayload = z.infer<typeof SignupSchema>;
+type SignupPayloadraw = z.infer<typeof SignupSchema>;
+
+export type SignupPayload = SignupPayloadraw & {
+  network: NetworkContext;
+};

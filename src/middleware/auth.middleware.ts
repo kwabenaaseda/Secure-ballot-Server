@@ -10,6 +10,8 @@ declare global {
         id: string;
         email: string;
         username: string;
+        range:string;
+        token:string
       };
     }
   }
@@ -41,6 +43,8 @@ export async function AuthMiddleware(
       id: decoded.sub,
       email: decoded.email,
       username: decoded.username,
+      range:decoded.range,
+      token:token
     };
 
     next();

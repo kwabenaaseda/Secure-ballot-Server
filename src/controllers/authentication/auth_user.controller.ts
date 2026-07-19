@@ -4,12 +4,21 @@ import { Signup_Operation } from '../../services/auth_mod_sys_users/signup';
 import { Log } from '../../utils/Logger';
 import { LoginSchema } from '../../services/auth_mod_sys_users/login/types';
 import { Login_Operation } from '../../services/auth_mod_sys_users/login';
-import { VerifyOTP_Operation } from '../../services/auth_mod_sys_users/otp_verify';
+import { VerifyPhone_Operation } from '../../services/auth_mod_sys_users/otp_verify_phone';
+import { Forgot_Password } from '../../services/auth_mod_sys_users/account_recovery/forgot_password';
+import { ResetSchema } from '../../services/auth_mod_sys_users/account_recovery/forgot_password/types';
 
 export async function Signup_Controller(req: Request, res: Response) {
   // Validate input
   const parsed = SignupSchema.safeParse(req.body);
+  const network = req.networkContext
 
+  if (!network || network == undefined){
+     return res.status(400).json({
+      success: false,
+      message: "Invalid User",
+    });
+  }
   if (!parsed.success) {
     return res.status(400).json({
       success: false,
@@ -19,7 +28,8 @@ export async function Signup_Controller(req: Request, res: Response) {
   }
 
   // Call service
-  const result = await Signup_Operation(parsed.data);
+  const params = {...parsed.data, network}
+  const result = await Signup_Operation(params);
 
   if (!result.success) {
     return res.status(400).json({
@@ -36,6 +46,14 @@ export async function Signup_Controller(req: Request, res: Response) {
 }
 export async function Login_Controller(req: Request, res: Response) {
   const parsed = LoginSchema.safeParse(req.body);
+  const network = req.networkContext
+
+  if (!network || network == undefined){
+     return res.status(400).json({
+      success: false,
+      message: "Invalid User",
+    });
+  }
 
   if (!parsed.success) {
     return res.status(400).json({
@@ -44,8 +62,10 @@ export async function Login_Controller(req: Request, res: Response) {
       errors: parsed.error.flatten().fieldErrors,
     });
   }
+  
+  const params = {...parsed.data, network}
 
-  const result = await Login_Operation(parsed.data);
+  const result = await Login_Operation(params);
 
   if (!result.success) {
     return res.status(401).json({
@@ -64,6 +84,14 @@ export async function Login_Controller(req: Request, res: Response) {
 export async function VerifyOTP_Controller(req: Request, res: Response) {
   const { otp } = req.body;
   const userId = req.user?.id; // From JWT middleware
+  const network = req.networkContext
+  
+  if (!network || network == undefined){
+     return res.status(400).json({
+      success: false,
+      message: "Invalid User",
+    });
+  }
 
   if (!otp || !userId) {
     return res.status(400).json({
@@ -71,8 +99,10 @@ export async function VerifyOTP_Controller(req: Request, res: Response) {
       message: "OTP is required.",
     });
   }
-
-  const result = await VerifyOTP_Operation(userId, otp);
+  const params = {
+    userId,otp,network
+  }
+  const result = await VerifyPhone_Operation(params);
 
   if (!result.success) {
     return res.status(400).json({
@@ -85,4 +115,41 @@ export async function VerifyOTP_Controller(req: Request, res: Response) {
     success: true,
     message: result._OPS_MESSAGE,
   });
+}
+
+export async function Forgot_Password_Controller(req:Request, res:Response) {
+
+  const parsed = ResetSchema.safeParse(req.body)
+  const network = req.networkContext
+
+  if (!network || network == undefined){
+     return res.status(400).json({
+      success: false,
+      message: "Invalid User",
+    });
+  }
+  
+   if (!parsed.success) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid input",
+      errors: parsed.error.flatten().fieldErrors,
+    });
+  }
+  
+
+  const result = await Forgot_Password(parsed.data, network)
+
+  if (!result.success) {
+    return res.status(400).json({
+      success: false,
+      message: result._OPS_MESSAGE,
+    });
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: result._OPS_MESSAGE,
+  });
+
 }

@@ -1,5 +1,5 @@
 // scripts/test_email.ts
-import { sendWelcomeEmail } from '../src/workers/email.service';
+import { sendWelcomeEmail } from '../workers/email.service';
 
 async function test() {
   try {

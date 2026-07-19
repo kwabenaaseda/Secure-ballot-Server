@@ -2,20 +2,23 @@
 
 import jwt from "jsonwebtoken"
 import bcrypt from "bcrypt"
-import { ENV } from "../workers/env_validater"
+import { ENV } from "../workers/env_validator"
 
 //=================== TOKENS =========================
 const ACCESS_TOKEN_EXPIRY = ENV("JWT_EXPIRATION") || "24h"
 const REFRESH_TOKEN_EXPIRY = ENV("JWT_REFRESH_EXPIRATION") || '48h'
 
 
-export async function GenerateToken({id, email, username}: {id:string, email:string, username:string}): Promise<string> {
+export async function GenerateToken({id, email, username,range}: {id:string, email:string, username:string,range:"access"|"temporary"|"reset"
+}): Promise<string> {
     const options = {
-        expiresIn: ACCESS_TOKEN_EXPIRY,
+        expiresIn:  range=="access"? ACCESS_TOKEN_EXPIRY:
+                    range=="temporary"?"15m":
+                    range=="reset"?"5m":"1m",
     } as jwt.SignOptions
 
     // use an object payload and ensure the secret is treated as jwt.Secret
-    const payload = { sub: id, email:email, username:username }
+    const payload = { sub: id, email:email, username:username, range:range }
 
     var token = jwt.sign(
         payload,
