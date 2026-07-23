@@ -116,10 +116,10 @@ export async function AddCandidate_Operation(
     // One less race condition to reason about at vote time, which is the
     // operation that matters most.
     const tally = queryRunner.manager.create(VoteTally, {
-      candidate: { id: savedCandidate.id } as any,
-      election:  { id: election_id } as any,
-      vote_count: 0,
-    });
+  candidate_id: savedCandidate.id,
+  election_id:  election_id,
+  vote_count:   0,
+});
     await queryRunner.manager.save(tally);
 
     await queryRunner.commitTransaction();
