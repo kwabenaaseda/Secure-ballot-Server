@@ -11,7 +11,7 @@ export class User {
   @Column({ type: 'varchar', unique: true })
   email: string;
  
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ type: 'varchar', unique:true })
   telephone: string;
  
   @Column({ type: 'varchar', unique: true })
@@ -23,7 +23,7 @@ export class User {
   @Column({ type: 'varchar', nullable: true })
   biometric_hash: string;           // SHA-256 only. Raw biometric NEVER stored.
  
-  @Column({ type: 'date' })
+  @Column({ type: 'date' , nullable:true})
   date_of_birth: Date;
  
   @Column({ type: 'varchar', nullable: true })
@@ -39,8 +39,11 @@ export class User {
   profile_picture: string;
  
   @Column({ type: 'varchar', default: 'unverified' })
-  verification_status: string;      // unverified | phone_verified | verified
+  verification_status: "unverified" | "phone_verified" | "email_verified" | "verified";      // unverified | phone_verified | email_verified | verified
  
+  @Column({type: 'varchar', default: 'green'})
+  user_status: "green" | "yellow" | "red"
+
   @CreateDateColumn({ type: 'timestamptz' })
   created_at: Date;
 }

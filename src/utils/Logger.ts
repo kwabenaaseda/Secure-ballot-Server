@@ -73,11 +73,11 @@ export const Log = {
   info:  
   /**
    * ## Log.info()
-   * Log general information to the terminal
+   * Logs general information to the terminal
    * 
-   * @param source 
-   * @param message 
-   * @param event 
+   * @param source : Where the log is calling from
+   * @param message : Log message (eg: error)
+   * @param event : Event associated with the log
    * @returns 
    */
   (source: string, message: string, event: string) =>
@@ -85,67 +85,80 @@ export const Log = {
 
   warn: 
   /**
+   * ## Log.warn()
+   * Logs Severe Warnings to the codebase
    * 
-   * @param source 
-   * @param message 
-   * @param event 
+   * @param source : Where the log is calling from
+   * @param message : Log message (eg: error)
+   * @param event : Event associated with the log
    * @returns 
    */
-  (source: string, message: string | Error, event: string) =>
+    (source: string, message: string | Error, event: string) =>
     _log("WARN",  source, message, event),
 
   error: 
   /**
+   * ## Log.error()
+   * Logs error information to the terminal
    * 
-   * @param source 
-   * @param message 
-   * @param event 
+   * @param source : Where the log is calling from
+   * @param message : Log message (eg: error)
+   * @param event : Event associated with the log
    * @returns 
    */
-  (source: string, message: string | Error, event: string) =>
+    (source: string, message: string | Error, event: string) =>
     _log("ERROR", source, message, event),
 
   debug:
   /**
+   * ## Log.debug()
+   * Logs debugging information to the terminal
    * 
-   * @param source 
-   * @param message 
-   * @param event 
+   * @param source : Where the log is calling from
+   * @param message : Log message (eg: error)
+   * @param event : Event associated with the log
    * @returns 
    */
-  (source: string, message: string | Error, event: string) =>
+    (source: string, message: string | Error, event: string) =>
     _log("DEBUG", source, message, event),
 
   trace:
   /**
+   * ## Log.trace()
+   * Logs information history to the terminal
    * 
-   * @param source 
-   * @param message 
-   * @param event 
+   * @param source : Where the log is calling from
+   * @param message : Log message (eg: error)
+   * @param event : Event associated with the log
    * @returns 
    */
-  (source: string, message: string, event: string) =>
+    (source: string, message: string, event: string) =>
     _log("TRACE", source, message, event),
 
   guide:
   /**
+   * ## Log.guide()
+   * Logs guide information to the terminal
    * 
-   * @param source 
-   * @param message 
-   * @param event 
+   * @param source : Where the log is calling from
+   * @param message : Log message (eg: error)
+   * @param event : Event associated with the log
    * @returns 
    */
-  (source: string, message: string, event: string) =>
+    (source: string, message: string, event: string) =>
     _log("GUIDE", source, message, event),
 
   fatal: 
   /**
+   * ## Log.fatal()
+   * Logs CRITICAL NODE FAILURE information to the terminal
    * 
-   * @param source 
-   * @param message 
-   * @param event 
+   * @param source : Where the log is calling from
+   * @param message : Log message (eg: error)
+   * @param event : Event associated with the log
+   * @returns 
    */
-  (source: string, message: string | Error, event: string) => {
+    (source: string, message: string | Error, event: string) => {
     _log("FATAL", source, message, event);
     process.exit(1);
   },

@@ -7,6 +7,7 @@ import { Login_Operation } from '../../services/auth_mod_sys_users/login';
 import { VerifyPhone_Operation } from '../../services/auth_mod_sys_users/otp_verify_phone';
 import { Forgot_Password } from '../../services/auth_mod_sys_users/account_recovery/forgot_password';
 import { ResetSchema } from '../../services/auth_mod_sys_users/account_recovery/forgot_password/types';
+import { VerifyAccount_Operation } from '../../services/auth_mod_sys_users/otp_verify';
 
 export async function Signup_Controller(req: Request, res: Response) {
   // Validate input
@@ -83,11 +84,11 @@ export async function Login_Controller(req: Request, res: Response) {
 
 export async function VerifyOTP_Controller(req: Request, res: Response) {
   const { otp } = req.body;
-  const userId = req.user?.id; // From JWT middleware
-  const network = req.networkContext
-  
+  const userId = req.user?.id;
+  const network = req.networkContext;
+
   if (!network || network == undefined){
-     return res.status(400).json({
+    return res.status(400).json({
       success: false,
       message: "Invalid User",
     });
@@ -99,10 +100,9 @@ export async function VerifyOTP_Controller(req: Request, res: Response) {
       message: "OTP is required.",
     });
   }
-  const params = {
-    userId,otp,network
-  }
-  const result = await VerifyPhone_Operation(params);
+
+  const params = { userId, otp, network };
+  const result = await VerifyAccount_Operation(params);
 
   if (!result.success) {
     return res.status(400).json({
@@ -114,9 +114,9 @@ export async function VerifyOTP_Controller(req: Request, res: Response) {
   return res.status(200).json({
     success: true,
     message: result._OPS_MESSAGE,
+    data: result._OPS_DATA,   // ← this line was missing
   });
 }
-
 export async function Forgot_Password_Controller(req:Request, res:Response) {
 
   const parsed = ResetSchema.safeParse(req.body)

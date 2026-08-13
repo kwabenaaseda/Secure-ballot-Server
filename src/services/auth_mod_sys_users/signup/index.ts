@@ -8,6 +8,8 @@ import { generateOTP } from "../../../utils/otp";
 import { sendWelcomeEmail, sendOTPEmail } from "../../../workers/email.service";
 import { sendOTPSMS } from "../../../workers/messenger.service";
 import { GenerateToken, Hash_Password, Generate_Refresh_Token } from "../../../utils/auth";
+import { auth_generate_token_payload } from "../../../utils/types";
+import Operations_Manager from "../../../utils/ops.manager";
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 
@@ -62,22 +64,16 @@ export async function Signup_Operation(
       where: [{ email }, { username }, { telephone }],
     });
 
-    if (existingUser) {
-      let duplicateField = "account";
-      if (existingUser.email      === email)     duplicateField = "email";
-      if (existingUser.username   === username)  duplicateField = "username";
-      if (existingUser.telephone  === telephone) duplicateField = "telephone";
-
-      return await OPS_Error({
-        ...ops_base,
-        status:         "OPERATION_FAILURE",
-        message:        `An account with this ${duplicateField} already exists.`,
-        error_code:     "DUPLICATE_FIELD",
-        error_category: "VALIDATION",
-        retryable:      false,
-        data:           { duplicate_field: duplicateField },
-      });
-    }
+   if (existingUser) {
+  return await OPS_Error({
+    ...ops_base,
+    status: "OPERATION_FAILURE",
+    message: "An account with these details already exists.",
+    error_code: "ACCOUNT_EXISTS",
+    error_category: "VALIDATION",
+    retryable: false,
+  });
+}
 
     // ── STEP 3: HASH PASSWORD ──────────────────────────────────────────────────
     const password_hash = await Hash_Password(password);
@@ -99,12 +95,28 @@ export async function Signup_Operation(
     const otp = await generateOTP(savedUser.id);
 
     // ── STEP 6: GENERATE TOKENS ────────────────────────────────────────────────
-    const token = await GenerateToken({
-      id:       savedUser.id,
-      email:    savedUser.email,
-      username: savedUser.username,
-      range:    "access",
-    });
+  const ops = await Operations_Manager({ user_id: savedUser.id, location: "domestic" });
+if (ops === false) {
+  return await OPS_Error({
+    ...ops_base,
+    status: "OPERATION_FAILURE",
+    message: "Unable to resolve access profile for this account.",
+    error_code: "PROFILE_RESOLUTION_FAILED",
+    error_category: "AUTH",
+    retryable: true,
+  });
+}
+
+let token_payload: auth_generate_token_payload = {
+  id: newUser.id,
+  username: newUser.username,
+  email: newUser.email,
+  network: payload.network,
+  verification: newUser.verification_status,
+  user_status: newUser.user_status,
+  range: ops.role,
+};
+       const token = await GenerateToken(token_payload)
 
     const refresh_token = await Generate_Refresh_Token({ id: savedUser.id });
 

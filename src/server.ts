@@ -4,6 +4,7 @@ import app from "./app";
 import dotenv from 'dotenv'
 import { Log } from "./utils/Logger";
 import { ENV, VALIDATE_ENV } from "./workers/env_validator";
+import { LoadPermissionCache } from "./utils/ops.manager";
 
 // Initializations
 dotenv.config()
@@ -15,6 +16,7 @@ const PORT = ENV("PORT")
 async function startServer() {
     VALIDATE_ENV()
     await initializeDatabase()
+    await LoadPermissionCache()
 
     app.listen(PORT,()=>{
     //console.log(`SecureBallot-server is live on http://localhost:${PORT}`)

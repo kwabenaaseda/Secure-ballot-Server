@@ -20,13 +20,13 @@ export class OrgMembers {
   user: User;
  
   @Column({ type: 'varchar', default: 'voter' })
-  role: string;                    // voter | moderator | admin
+  role: "voter"|"moderator"|"admin";                    // voter | moderator | admin
  
   @Column({ type: 'varchar', default: 'pending' })
-  status: string;                  // pending | active | inactive
+  status: "pending"|"active"|"deactivated";                  // pending | active | inactive
  
   @Column({ type: 'varchar', nullable: true })
-  verified_via: string;            // How they were verified (email, phone, custom)
+  verified_via: "email_verified"|"phone_verified"|"custom";            // How they were verified (email, phone, custom)
  
   @Column({ type: 'timestamptz', nullable: true })
   joined_at: Date;

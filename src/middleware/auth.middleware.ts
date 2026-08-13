@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { VerifyToken } from '../utils/auth';
 import { Log } from '../utils/Logger';
+import { success } from 'zod/v4';
 
 // Extend Express Request to carry user data
 declare global {
@@ -10,8 +11,13 @@ declare global {
         id: string;
         email: string;
         username: string;
-        range:string;
-        token:string
+        token:{
+          token: string,
+          token_range:string,
+          token_verification: string,
+          token_user_status: string,
+          token_data?:string
+        }
       };
     }
   }
@@ -38,13 +44,26 @@ export async function AuthMiddleware(
     // ── STEP 2: VERIFY TOKEN ───────────────────────────
     const decoded = await VerifyToken(token) as any;
 
+    // ── STEP 2.5: CHECKSUM FAIL FAST ───────────────────────────
+    if(!token || !decoded.range || !decoded.verification || !decoded.user_status || !decoded.sub){
+      return res.status(401).json({
+        success:false,
+        message:"Malformed token. Please retry action after 2 minutes"
+      })
+    }
+
     // ── STEP 3: ATTACH USER TO REQUEST ─────────────────
     req.user = {
       id: decoded.sub,
       email: decoded.email,
       username: decoded.username,
-      range:decoded.range,
-      token:token
+      token:{
+          token: token,
+          token_range:decoded.range,
+          token_verification: decoded.verification,
+          token_user_status: decoded.user_status,
+          token_data: decoded.data?decoded.data:false
+        }
     };
 
     next();
