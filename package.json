@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "bun run --watch src/server.ts",
     "build": "bun build ./src/server.ts --target node --outdir ./dist --external '*'",
-    "start": "bun dist/index.js",
+    "start": "bun dist/server.js",
     "worker": "bun run src/workers/emailWorker.ts",
     "lint": "eslint src --ext .ts",
     "format": "prettier --write src",
