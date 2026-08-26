@@ -120,7 +120,7 @@ const token = await GenerateToken(token_payload);
 
     // ── STEP 6: FIRE NOTIFICATIONS (non-blocking) ──────────────────────────────        
     sendOTPEmail({ to: user.email, username: user.username, otp })
-      .catch((err) => Log.debug(SOURCE, `OTP :${otp} email failed: ${err}`, EVENT));
+      .catch((err) => Log.debug(SOURCE, `OTP email failed: ${err}`, EVENT));
 
     sendOTPSMS(user.telephone, otp)
       .catch((err) => Log.debug(SOURCE, `OTP SMS failed: ${err}`, EVENT));
