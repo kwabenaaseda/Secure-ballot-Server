@@ -33,6 +33,15 @@ const REQUIRED_ENV_VARS = [
   // SMS (comment out until Arkesel is ready)
    "ARKESEL_API_KEY",
    "ARKESEL_SENDER_ID",
+
+   // Admin credentials
+   "SEED_ADMIN_EMAIL",
+   "SEED_ADMIN_USERNAME",
+   "SEED_ADMIN_PASSWORD",
+
+   "GMAIL_USER",
+   "GMAIL_APP_PASSWORD",
+   "FRONTEND_URL"
 ] as const;
 
 // ─── TYPE: VALID ENV KEY ─────────────────────────────

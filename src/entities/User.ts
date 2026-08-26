@@ -1,6 +1,6 @@
 import {
   Entity, PrimaryGeneratedColumn, Column,
-  CreateDateColumn, OneToMany
+  CreateDateColumn
 } from 'typeorm';
  
 @Entity('users')

@@ -34,7 +34,7 @@ export async function LoadPermissionCache(): Promise<void> {
 
 // ── PEP: the actual gate. Default-deny — a missing row and an explicit
 // DENY row both resolve to false. ──
-export function Authorize(role: ROLES, resource: string, action: string): boolean {
+export function Authorize(role: ROLES, resource: RESOURCE, action: ACTION): boolean {
   return PERMISSION_CACHE.get(permKey(role, resource, action)) === "ALLOW";
 }
 
@@ -57,8 +57,11 @@ export type ROLES =
   | "ORG_ACCESS[PART]" | "ORG_ACCESS[FULL]"
   | "SYSTEM_ADMIN" | "NO_ACCESS";
 
-type LOCATION = "domestic" | "organization" | "engineer" | "account" | "vote";
-type ORG_ROLE = "voter" | "admin" | "moderator"; // NOTE: "moderator" == owner tier
+export type LOCATION = "domestic" | "organization" | "engineer" | "account" | "vote";
+export type ORG_ROLE = "voter" | "admin" | "moderator"; // NOTE: "moderator" == owner tier
+export type RESOURCE = 'account.self' | 'app' | 'ballot' | 'election' | 'election.result_certified' | 'election.tally_live' | 'org_membership' | 'organization' | 'token' | 'vote'
+export type ACTION = 'apply' | 'approve' | 'cast' | 'create' | 'delete' | 'evict' | 'explore' |  'fill' | 'publish' | 'read' | 'read_metrics' | 'read_public' | 'recovery' | 'renew' |'request' |'update' |'update_metadata' |'verify_join_request'|'verify_onboard'
+
 
 // ── PIP: gather the facts. Plain reads — no transaction needed, since
 // nothing here writes and a read-only txn wouldn't make the later
@@ -152,8 +155,9 @@ async function Operations_Manager(
     if (!profile) return false;
 
     return {
-      profile,          // raw facts, for any ABAC check the caller still needs to run
+      profile:profile,          // raw facts, for any ABAC check the caller still needs to run
       role: AssignRole(profile, payload.location),
+      authorize:Authorize
     };
   } catch (error) {
     Log.error("Operations_Manager", String(error), "OPS_MANAGER");

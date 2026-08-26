@@ -207,7 +207,13 @@ range:  "ACCOUNT_ACCESS[PART]"
 
 network: NetworkContext,
 data?:{
-        election_id:string
+        election_id?:string,
+        org_id?:string,
+        org_name?:string,
+        election_name?:string,
+        election_type?:"public"|"private",
+        election_status?:"pending"|"active"|"completed"|"cancelled",
+        admin?: "admin" | "super_admin"
 }
 }
 

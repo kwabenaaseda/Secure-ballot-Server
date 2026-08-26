@@ -43,6 +43,15 @@ export class Election {
   @Column({ type: 'jsonb', default: '[]' })
   categories: any[];               // Election categories (e.g. ['President', 'VP'])
  
+  @Column({ type: 'varchar', default: 'unreleased' })
+results_status: "unreleased" | "released";
+
+@Column({ type: 'timestamptz', nullable: true })
+results_released_at: Date | null;
+
+@Column({ type: 'uuid', nullable: true })
+results_released_by: string | null;
+  
   @Column({ type: 'timestamptz' })
   start_at: Date;
  

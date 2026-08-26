@@ -13,7 +13,7 @@ import {
 
 export interface NetworkContext {
   ip_hash: string;                  // SHA3(raw_ip + server_salt) — done in middleware
-  device_fingerprint_hash?: string;  // SHA3(user_agent + screen + timezone + ...) — done client-side
+  device_fingerprint_hash?: string | any;  // SHA3(user_agent + screen + timezone + ...) — done client-side
   user_agent_class: "MOBILE_APP" | "DESKTOP_APP" | "BROWSER";
   correlation_id: string;           // UUID generated at request entry point
   session_id: string;               // active session ID or "NONE" for pre-auth

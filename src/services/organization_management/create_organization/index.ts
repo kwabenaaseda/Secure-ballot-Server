@@ -5,6 +5,7 @@ import { CreateOrganizationPayload } from "./types";
 import { AppDataSource } from "../../../config/database";
 import { Organization } from "../../../entities/Organization";
 import { OrgMembers } from "../../../entities/OrgMembers";
+import { OrganizationAuth } from "../../../entities/Org_auth";
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 
@@ -68,47 +69,64 @@ export async function CreateOrganization_Operation(
       });
     }
 
-    // ── STEP 3: CREATE ORGANIZATION ────────────────────────────────────────────
+    // ── STEP 3: CREATE ORGANIZATION — starts PENDING, not active ───────────────
+    // Org cannot run elections until a system admin approves it. This mirrors
+    // real-world electoral-body accreditation — a deliberate trust checkpoint,
+    // not a gap to be optimized away.
     const newOrg = queryRunner.manager.create(Organization, {
       name,
       sector,
       email,
-      // ensure optional fields use undefined (not null) to satisfy DeepPartial types
       company_logo:  payload.company_logo ?? undefined,
       visibility,
       primary_admin: { id: creator_id } as any,
+      status: "pending",
+      verification_documents: payload.verification_documents ?? null,
     });
     const savedOrg = await queryRunner.manager.save(newOrg);
 
-    // ── STEP 4: CREATE ADMIN MEMBERSHIP FOR CREATOR ─────────────────────────────
-    // System-level authority (primary_admin) is separate from org-context
-    // identity (OrgMembers). The creator needs both.
+    // ── STEP 4: CREATE ADMIN MEMBERSHIP FOR CREATOR — also PENDING ─────────────
+    // This is the load-bearing line: OrgMembers.status stays at its schema
+    // default ('pending') instead of being force-set to 'active'. Every
+    // downstream authorization check (CreateElection_Operation, AddCandidate,
+    // etc.) already requires membership.status === 'active' — so leaving this
+    // pending means the ENTIRE org is inert until approval, with zero changes
+    // needed anywhere else in the codebase. Approval flips exactly two rows.
     const membership = queryRunner.manager.create(OrgMembers, {
       org:          { id: savedOrg.id } as any,
       user:         { id: creator_id }  as any,
       role:         "admin",
-      status:       "active",
-      verified_via: "org_creation",
+      status:       "pending",
+      verified_via: "custom",
       joined_at:    new Date(),
     });
     await queryRunner.manager.save(membership);
 
+    const authRepo = queryRunner.manager.getRepository(OrganizationAuth);
+await authRepo.save(authRepo.create({
+  org: { id: savedOrg.id } as any,
+  custom_fields: payload.custom_fields ?? [],   // empty array = open join mode
+  schema_version: 1,
+  status: "draft",                              // flips to 'active' once org itself is approved
+}));
+
     await queryRunner.commitTransaction();
 
     // ── STEP 5: RETURN SUCCESS ─────────────────────────────────────────────────
-    Log.info(SOURCE, "Organization created successfully", EVENT);
+    Log.info(SOURCE, "Organization created successfully, pending admin approval", EVENT);
 
     return await OPS_Success({
       ...ops_base,
       org_id:  savedOrg.id,
       status:  "COMPLETED",
-      message: "Organization created successfully.",
+      message: "Organization created. It is pending system admin approval before you can create elections.",
       data: {
         org: {
           id:         savedOrg.id,
           name:       savedOrg.name,
           email:      savedOrg.email,
           visibility: savedOrg.visibility,
+          status:     savedOrg.status,
         },
       },
     });

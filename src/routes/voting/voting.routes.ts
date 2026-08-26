@@ -1,7 +1,7 @@
 import Router from 'express'
 import { CastVote_Controller } from '../../controllers/voting/voting.controller'
 import { AuthMiddleware } from '../../middleware/auth.middleware'
-import { NetworkContextMiddleware } from '../../middleware/networkContenxt'
+import { NetworkContextMiddleware } from '../../middleware/networkContext'
 
 const Voting_routes = Router()
 

@@ -24,7 +24,8 @@ export type ACTOR_TYPE =
   | "SYSTEM"
   | "SCHEDULER"
   | "KEYHOLDER"
-  | "AUDITOR";
+  | "AUDITOR"
+  | "SYSTEM_ADMIN";
 
 export type THREAT_SIGNAL =
   | "NONE"

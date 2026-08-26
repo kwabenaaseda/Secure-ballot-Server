@@ -1,7 +1,7 @@
 import Router from 'express'
 import { CreateElection_Controller, AddCandidate_Controller } from '../../controllers/election_management/election.controller'
 import { AuthMiddleware } from '../../middleware/auth.middleware'
-import { NetworkContextMiddleware } from '../../middleware/networkContenxt'
+import { NetworkContextMiddleware } from '../../middleware/networkContext'
 
 const Election_routes = Router()
 

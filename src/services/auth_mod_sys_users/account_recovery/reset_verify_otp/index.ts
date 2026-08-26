@@ -1,12 +1,13 @@
 import { Service_Success_Handler, Service_Error_Handler } from "../../../../types/Response_handler";
-import { CLOCK, Log } from "../../../../utils/Logger";
+import { Log } from "../../../../utils/Logger";
 import { AppDataSource } from "../../../../config/database";
 import { User } from "../../../../entities/User";
 import { VerifyOTP_Operation } from "../../../helpers/otp_verify";
-import { GenerateToken } from "../../../../utils/auth";
+import { Generate_Refresh_Token, GenerateToken } from "../../../../utils/auth";
 import { NetworkContext } from "../../../../lib/ops/ops.types";
 import { OPS_Error, OPS_Success } from "../../../../lib/ops/ops.factory";
 import { auth_generate_token_payload } from "../../../../utils/types";
+import Operations_Manager from "../../../../utils/ops.manager";
 
 const EVENT = "RESET_PASSWORD_VERIFY_OTP"
 const SOURCE = "VERIFY_RESET_PASSWORD_OTP"
@@ -58,7 +59,7 @@ export async function Verify_Reset_Password_OTP(
         ...ops_base,
         status: "OPERATION_FAILURE",
         message: is_valid._OPS_MESSAGE,
-        error_code: "MISSING_REQUIRED_FILEDS",
+        error_code: "MISSING_REQUIRED_FIELDS",
         error_category: "VALIDATION",
         retryable: true,
       })
@@ -74,27 +75,39 @@ export async function Verify_Reset_Password_OTP(
       return await OPS_Error({
         ...ops_base,
         status: "OPERATION_FAILURE",
-        message: "Unkown User",
-        error_code: "MISSING_REQUIRED_FILEDS",
+        message: "User not found.",
+        error_code: "MISSING_REQUIRED_FIELDS",
         error_category: "VALIDATION",
         retryable: true,
       })
     }
     // Token Generation
-    let token_payload: auth_generate_token_payload = {
-      id: _user.id,
-      username: _user.username,
-      email: _user.email,
-      network: params.network,
-      verification: _user.verification_status,
-      user_status: _user.user_status,
-      range:
-        _user.user_status == "RED" ? "NO_ACCESS" :
-          _user.user_status == "YELLOW" ? "ACCOUNT_ACCESS[PART]" :
-            _user.user_status == "GREEN" && _user.verification_status == "VERIFIED" ? "ACCOUNT_ACCESS[FULL]" :
-              _user.user_status == "GREEN" && (_user.verification_status == "EMAIL_VERIFIED" || _user.verification_status == "PHONE_VERIFIED" || _user.verification_status == "UNVERIFIED") ? "ACCOUNT_ACCESS[PART]" : "NO_ACCESS"
-    }
-    const token = await GenerateToken(token_payload)
+  let ops = await Operations_Manager({ user_id: _user.id, location: "domestic" });
+
+if (ops === false) {
+  return await OPS_Error({
+    ...ops_base,
+    status: "OPERATION_FAILURE",
+    message: "Unable to resolve access profile for this account.",
+    error_code: "PROFILE_RESOLUTION_FAILED",
+    error_category: "AUTH",
+    retryable: true,
+  });
+}
+
+
+let token_payload: auth_generate_token_payload = {
+  id: _user.id,
+  username: _user.username,
+  email: _user.email,
+  network: params.network,
+  verification: _user.verification_status,
+  user_status: _user.user_status,
+  range: ops.role,
+};
+
+const token = await GenerateToken(token_payload);
+
 
 
     Log.info(Verify_Reset_Password_OTP.name, "Reset OTP verified successfully", "RESET_OTP_VERIFY");

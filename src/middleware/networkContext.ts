@@ -42,7 +42,7 @@ export async function NetworkContextMiddleware(
     Log.info(NetworkContextMiddleware.name, "Attempting Network Context extraction", "SYSTEM_NETWORK_CONTEXT_EXTRACTION");
     try {
          // Session ID
-         const _session = req.user?.token ? req.user.token : "NONE"
+         const _session = req.user?.token ? req.user.token.token : "NONE"
 
         // -- GET IP AND HASH IT
        // -- GET IP AND HASH IT

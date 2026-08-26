@@ -18,13 +18,6 @@ export async function CastVote_Operation(
 
   const started_at = Date.now();
 
-  // ⚠️ classification: SEALED, integrity_class: IMMUTABLE — per your own
-  // Response_handler.ts comment: "SEALED = shadow system, no log content,
-  // only hash proof." This is the exact case it exists for.
-  // ⚠️ data/message below deliberately never mention candidate_id — see
-  // the entry_content trace we did on buildIntegrityProof: it's structurally
-  // impossible for candidate info to enter the chain, but message text
-  // is free-form, so discipline still matters there.
   const ops_base = {
     event:      EVENT,
     source:     SOURCE,
@@ -71,6 +64,22 @@ export async function CastVote_Operation(
         message: "Election is not open for voting.",
         error_code: "ELECTION_NOT_OPEN",
         error_category: "VALIDATION",
+        retryable: false,
+      });
+    }
+
+    // ── STEP 1.5: ORG MUST STILL BE ACTIVE — a suspension after an election
+    // was already published must not leave a live, votable election behind.
+    // This is what actually makes "admin can stop them from causing
+    // problems" true at the moment it matters most. ──
+    if (election.org.status !== "active") {
+      await queryRunner.rollbackTransaction();
+      return await OPS_Error({
+        ...ops_base,
+        status: "OPERATION_FAILURE",
+        message: "This election's organization is not active. Voting is disabled.",
+        error_code: "ORG_NOT_ACTIVE",
+        error_category: "AUTH",
         retryable: false,
       });
     }
@@ -128,9 +137,6 @@ export async function CastVote_Operation(
     }
 
     // ── STEP 4: RECORD PARTICIPATION ───────────────────────────────────────────
-    // The DB's UNIQUE(user, election) constraint is the real enforcement of
-    // "one vote per person" — this insert either succeeds once, or throws,
-    // which the catch block below turns into a clean ALREADY_VOTED error.
     const voteRecordRepo = queryRunner.manager.getRepository(VoteRecord);
     const record = voteRecordRepo.create({
       user:     { id: voter_id }     as any,
@@ -139,8 +145,6 @@ export async function CastVote_Operation(
     await queryRunner.manager.save(record);
 
     // ── STEP 5: INCREMENT TALLY — ATOMIC, NO READ-MODIFY-WRITE RACE ───────────
-    // Raw increment via query builder, not save(), so concurrent votes for
-    // the same candidate can't clobber each other (no fetch-then-write gap).
     await queryRunner.manager
       .createQueryBuilder()
       .update(VoteTally)
@@ -154,8 +158,6 @@ export async function CastVote_Operation(
 
     Log.info(SOURCE, "Vote recorded", EVENT);
 
-    // Generic message and data — no candidate_id anywhere in this response
-    // or in what gets audited. See ops_base comment above.
     return await OPS_Success({
       ...ops_base,
       status: "COMPLETED",
@@ -167,7 +169,6 @@ export async function CastVote_Operation(
     await queryRunner.rollbackTransaction();
     Log.debug(SOURCE, String(error), EVENT);
 
-    // Postgres unique_violation code — this is your "already voted" path
     if (error?.code === "23505") {
       return await OPS_Error({
         ...ops_base,

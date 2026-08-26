@@ -29,5 +29,5 @@ export class OrgMembers {
   verified_via: "email_verified"|"phone_verified"|"custom";            // How they were verified (email, phone, custom)
  
   @Column({ type: 'timestamptz', nullable: true })
-  joined_at: Date;
+  joined_at: Date | null;
 }

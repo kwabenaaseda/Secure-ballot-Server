@@ -3,7 +3,7 @@ import type{Request, Response} from 'express'
 import { Forgot_Password_Controller, Login_Controller, Signup_Controller, VerifyOTP_Controller } from '../../../controllers/authentication/auth_user.controller'
 import { ENV } from '../../../workers/env_validator'
 import { AuthMiddleware } from '../../../middleware/auth.middleware'
-import { NetworkContextMiddleware } from '../../../middleware/networkContenxt'
+import { NetworkContextMiddleware } from '../../../middleware/networkContext'
 
 const Auth_user = Router()
 
