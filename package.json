@@ -4,8 +4,8 @@
   "description": "SecureBallot backend: anonymous multi-tenant e-voting platform with Bull job queue",
   "type": "module",
   "scripts": {
-    "dev": "bun run --watch src/server.ts",
-    "build": "bun build ./src/server.ts --target node --outdir ./dist --external '*'",
+   "dev": "bun --watch src/server.ts",
+    "build": "rm -rf dist && bun build src/server.ts --target=bun --outdir=dist --packages=external",
     "start": "bun dist/server.js",
     "worker": "bun run src/workers/emailWorker.ts",
     "lint": "eslint src --ext .ts",
