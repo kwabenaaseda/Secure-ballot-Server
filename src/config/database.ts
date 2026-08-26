@@ -24,12 +24,12 @@ VALIDATE_ENV();
 
 export const AppDataSource = new DataSource({
     type: "postgres",
-    ...(ENV("DATABASE_URL")!=="false" ?(console.log(ENV("DATABASE_URL")), {
+    ...(ENV("DATABASE_URL")!=="false" ? {
             url: ENV("DATABASE_URL"),
             ssl: {
                 rejectUnauthorized: false,
             },
-        })
+        }
         : {
             host: ENV("DATABASE_HOST") || "127.0.0.1",
             port: parseInt(ENV("DATABASE_PORT") || "5432", 10),
