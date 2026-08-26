@@ -5,7 +5,6 @@ import Admin_routes from './admin/admin_managment.routes'
 import Org_routes from './organization/organization.routes'
 import Election_routes from './election_management/election.routes'
 import Voting_routes from './voting/voting.routes'
-import Account from './account/account.routes'
 import Account_Settings_Routes from './account/account.routes'
 
 const ROUTES = express()
