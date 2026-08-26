@@ -24,15 +24,23 @@ VALIDATE_ENV();
 
 export const AppDataSource = new DataSource({
     type: "postgres",
-    host: ENV("DATABASE_HOST") || "127.0.0.1",
-    port: parseInt(ENV("DATABASE_PORT") || "5432", 10),
-    username: ENV("DATABASE_USERNAME") || 'secureballot_user',
-    password: ENV("DATABASE_PASSWORD") || 'secureballot_secure_pass',
-    database: ENV("DATABASE_NAME") || 'secureballot_dev',
+    ...(ENV("DATABASE_URL")!=="false" ?(console.log(ENV("DATABASE_URL")), {
+            url: ENV("DATABASE_URL"),
+            ssl: {
+                rejectUnauthorized: false,
+            },
+        })
+        : {
+            host: ENV("DATABASE_HOST") || "127.0.0.1",
+            port: parseInt(ENV("DATABASE_PORT") || "5432", 10),
+            username: ENV("DATABASE_USERNAME") || "secureballot_user",
+            password: ENV("DATABASE_PASSWORD") || "secureballot_secure_pass",
+            database: ENV("DATABASE_NAME") || "secureballot_dev",
+        }),
     synchronize: false, // Set to false in production, true for development
-    migrationsRun:false, // Set to true if you want migrations to run automatically on app start
+    migrationsRun: false, // Set to true if you want migrations to run automatically on app start
     logging: false,
-    entities: [Candidate,Election,AuditLog,ColdStore,OrganizationAuth, OrgStructure,Organization, OrgMemberProfiles,OrgMemberProfileEdits,OrgMembers,RolePermission,SystemAdmin,TokenBlacklist, User, VoteRecord,VoteTally],
+    entities: [Candidate, Election, AuditLog, ColdStore, OrganizationAuth, OrgStructure, Organization, OrgMemberProfiles, OrgMemberProfileEdits, OrgMembers, RolePermission, SystemAdmin, TokenBlacklist, User, VoteRecord, VoteTally],
     migrations: ['src/migrations/*.ts'],
     subscribers: [],
 });
