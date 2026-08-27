@@ -19,7 +19,7 @@ export async function GetDashboard_Operation(params: { userId: string; network: 
   };
 
   const ops = await Operations_Manager({ user_id: params.userId, location: "domestic" });
-  if (ops === false || !Authorize(ops.role, "app", "read")) {
+  if (ops === false || !Authorize(ops.role, "app", "explore")) {
     return await OPS_Error({ ...ops_base, status: "OPERATION_FAILURE", message: "Not authorized.", error_code: "FORBIDDEN", error_category: "AUTH", retryable: false });
   }
   // Find user 

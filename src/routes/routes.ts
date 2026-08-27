@@ -6,6 +6,7 @@ import Org_routes from './organization/organization.routes'
 import Election_routes from './election_management/election.routes'
 import Voting_routes from './voting/voting.routes'
 import Account_Settings_Routes from './account/account.routes'
+import Account_Dashboardd_Routes from './account/account_dashboard.routes'
 
 const ROUTES = express()
 
@@ -27,5 +28,8 @@ ROUTES.use("/vote", Voting_routes)
 
 // ------------------- ACCOUNT SETTINGS
 ROUTES.use("/account/settings",Account_Settings_Routes)
+
+// ------------------- ACCOUNT DASHBOARD
+ROUTES.use("/account",Account_Dashboardd_Routes)
 
 export default ROUTES

@@ -6,3 +6,5 @@ import { GetDashboard_Controller } from "../../controllers/account/account_dashb
 const Account_Dashboardd_Routes = Router()
 
 Account_Dashboardd_Routes.get('/dashboard', AuthMiddleware, NetworkContextMiddleware, GetDashboard_Controller)
+
+export default Account_Dashboardd_Routes
