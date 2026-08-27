@@ -13,6 +13,6 @@ app.use(cors({
 }))
 app.set('trust proxy', 1) // Enable trust proxy to get the correct client IP address
 // ROUTES
-app.use('/api/v1',ROUTES)
+app.use('/api/vx',ROUTES)
 
 export default app

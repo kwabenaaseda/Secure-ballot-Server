@@ -1,23 +1,15 @@
 // src/workers/email.service.ts
-import { transporter } from "./nodemailer.service";
+//import { transporter } from "./nodemailer.service";
 import { ENV } from "./env_validator";
+import { Brevo_send } from "./brevo.service";
 
-const MAIL_FROM = ENV("MAIL_FROM") || ENV("GMAIL_USER");
 
 interface WelcomeEmailPayload { to: string; username: string; }
 interface OTPEmailPayload { to: string; username: string; otp: string; }
 
-async function send(to: string, subject: string, html: string) {
-  try {
-    return await transporter.sendMail({ from: MAIL_FROM, to, subject, html });
-  } catch (error) {
-    console.error(`Email send error (${subject}):`, error);
-    throw new Error(`Failed to send email: ${error instanceof Error ? error.message : String(error)}`);
-  }
-}
 
 export async function sendWelcomeEmail({ to, username }: WelcomeEmailPayload) {
-  return send(to, 'Welcome to SecureBallot 🗳', `
+  return Brevo_send(to, 'Welcome to SecureBallot 🗳', `
   <div style="margin:0;padding:0;background-color:#060610;background-image:radial-gradient(1200px 600px at 20% -10%, rgba(124,58,237,0.22), transparent), radial-gradient(900px 500px at 90% 0%, rgba(59,130,246,0.18), transparent);">
     <div style="padding:40px 16px;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
       <div style="max-width:600px;margin:0 auto;">
@@ -105,7 +97,7 @@ export async function sendWelcomeEmail({ to, username }: WelcomeEmailPayload) {
 
 
 export async function sendOTPEmail({ to, username, otp }: OTPEmailPayload) {
- return send(to, 'Your SecureBallot Verification Code', `
+ return Brevo_send(to, 'Your SecureBallot Verification Code', `
   <div style="margin:0;padding:0;background-color:#060610;background-image:radial-gradient(1200px 600px at 20% -10%, rgba(124,58,237,0.22), transparent), radial-gradient(900px 500px at 90% 0%, rgba(59,130,246,0.18), transparent);">
     <div style="padding:40px 16px;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
       <div style="max-width:600px;margin:0 auto;">
@@ -167,7 +159,7 @@ export async function sendOTPEmail({ to, username, otp }: OTPEmailPayload) {
 
 
 export async function sendPasswordResetEmail({ to, username, otp }: OTPEmailPayload) {
-  return send(to, 'SecureBallot Password Reset', `
+  return Brevo_send(to, 'SecureBallot Password Reset', `
   <div style="margin:0;padding:0;background-color:#060610;background-image:radial-gradient(1000px 500px at 15% -10%, rgba(239,68,68,0.18), transparent), radial-gradient(1000px 500px at 85% 0%, rgba(124,58,237,0.16), transparent);">
     <div style="padding:40px 16px;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
       <div style="max-width:600px;margin:0 auto;">
