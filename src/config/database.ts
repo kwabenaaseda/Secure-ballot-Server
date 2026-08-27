@@ -20,6 +20,7 @@ import { TokenBlacklist } from "../entities/token_blacklist.ts";
 import { User } from "../entities/User.ts";
 import { VoteRecord } from "../entities/Vote_record.ts";
 import { VoteTally } from "../entities/Vote_tally.ts";
+import { OtpCode } from "../entities/OtpCode.ts";
 VALIDATE_ENV();
 
 export const AppDataSource = new DataSource({
@@ -40,7 +41,7 @@ export const AppDataSource = new DataSource({
     synchronize: false, // Set to false in production, true for development
     migrationsRun: false, // Set to true if you want migrations to run automatically on app start
     logging: false,
-    entities: [Candidate, Election, AuditLog, ColdStore, OrganizationAuth, OrgStructure, Organization, OrgMemberProfiles, OrgMemberProfileEdits, OrgMembers, RolePermission, SystemAdmin, TokenBlacklist, User, VoteRecord, VoteTally],
+    entities: [Candidate, Election, AuditLog, ColdStore, OrganizationAuth, OrgStructure, Organization, OrgMemberProfiles, OrgMemberProfileEdits, OrgMembers, RolePermission, SystemAdmin, TokenBlacklist, User, VoteRecord, VoteTally,OtpCode],
     migrations: ['src/migrations/*.ts'],
     subscribers: [],
 });

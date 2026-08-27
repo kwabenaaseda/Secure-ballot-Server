@@ -6,6 +6,22 @@ import { Login_Operation } from '../../services/auth_mod_sys_users/login';
 import { Forgot_Password } from '../../services/auth_mod_sys_users/account_recovery/forgot_password';
 import { ResetSchema } from '../../services/auth_mod_sys_users/account_recovery/forgot_password/types';
 import { VerifyAccount_Operation } from '../../services/auth_mod_sys_users/otp_verify';
+// controllers/authentication/auth_user.controller.ts — add
+import { Resend_OTP } from '../../services/auth_mod_sys_users/resendOTP';
+
+export async function ResendOTP_Controller(req: Request, res: Response) {
+  const network = req.networkContext;
+  const userId = req.user?.id;
+  if (!network || !userId) {
+    return res.status(400).json({ success: false, message: "Invalid User" });
+  }
+  const result = await Resend_OTP({ userId, network });
+  if (!result.success) {
+    return res.status(400).json({ success: false, message: result._OPS_MESSAGE });
+  }
+  return res.status(200).json({ success: true, message: result._OPS_MESSAGE });
+}
+
 
 export async function Signup_Controller(req: Request, res: Response) {
   // Validate input
