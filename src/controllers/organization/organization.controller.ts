@@ -53,7 +53,7 @@ export async function CreateOrganization_Controller(req: Request, res: Response)
 
 export async function Search_Org(req:Request, res:Response){
   const network = req.networkContext
-  const {query} = req.params
+  const query = req.query.q as string
   if (!network) {
     return res.status(400).json({ success: false, message: "Invalid User" });
   }

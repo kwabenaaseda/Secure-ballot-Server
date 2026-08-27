@@ -11,5 +11,4 @@ Account_Settings_Routes.patch('/', AuthMiddleware, NetworkContextMiddleware, Upd
 Account_Settings_Routes.delete('/', AuthMiddleware, NetworkContextMiddleware, DeleteSelf_Controller)
 Account_Settings_Routes.get('/', AuthMiddleware, NetworkContextMiddleware, GetSelf_Controller)
 
-
 export default Account_Settings_Routes
