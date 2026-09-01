@@ -6,10 +6,10 @@ import { Request, Response, NextFunction } from 'express';
 // SystemAdmin, not a regular User. Two different entities, two different
 // tables — a User token can never satisfy this check, by construction.
 export function RequireSystemAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.user || req.user.token.token_range !== "SYSTEM_ADMIN") {
+  if (!req.user || req.user.token.token_range !== 'SYSTEM_ADMIN') {
     return res.status(403).json({
       success: false,
-      message: "Forbidden. System admin access required.",
+      message: 'Forbidden. System admin access required.',
     });
   }
   next();
@@ -18,10 +18,14 @@ export function RequireSystemAdmin(req: Request, res: Response, next: NextFuncti
 // Extra tier on top: only super_admin can onboard other admins.
 // We stash level on token_data at login time (see login service).
 export function RequireSuperAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.user || req.user.token.token_range !== "SYSTEM_ADMIN" || req.user.token.token_data !== "super_admin") {
+  if (
+    !req.user ||
+    req.user.token.token_range !== 'SYSTEM_ADMIN' ||
+    req.user.token.token_data !== 'super_admin'
+  ) {
     return res.status(403).json({
       success: false,
-      message: "Forbidden. Super admin access required.",
+      message: 'Forbidden. Super admin access required.',
     });
   }
   next();

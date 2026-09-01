@@ -1,15 +1,23 @@
 // src/workers/email.service.ts
 //import { transporter } from "./nodemailer.service";
-import { ENV } from "./env_validator";
-import { Brevo_send } from "./brevo.service";
+import { ENV } from './env_validator';
+import { Brevo_send } from './brevo.service';
 
-
-interface WelcomeEmailPayload { to: string; username: string; }
-interface OTPEmailPayload { to: string; username: string; otp: string; }
-
+interface WelcomeEmailPayload {
+  to: string;
+  username: string;
+}
+interface OTPEmailPayload {
+  to: string;
+  username: string;
+  otp: string;
+}
 
 export async function sendWelcomeEmail({ to, username }: WelcomeEmailPayload) {
-  return Brevo_send(to, 'Welcome to SecureBallot 🗳', `
+  return Brevo_send(
+    to,
+    'Welcome to SecureBallot 🗳',
+    `
   <div style="margin:0;padding:0;background-color:#060610;background-image:radial-gradient(1200px 600px at 20% -10%, rgba(124,58,237,0.22), transparent), radial-gradient(900px 500px at 90% 0%, rgba(59,130,246,0.18), transparent);">
     <div style="padding:40px 16px;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
       <div style="max-width:600px;margin:0 auto;">
@@ -72,7 +80,7 @@ export async function sendWelcomeEmail({ to, username }: WelcomeEmailPayload) {
 
             <!-- CTA -->
             <div style="text-align:center;margin:4px 0 24px 0;">
-              <a href="${ENV("FRONTEND_URL") || "#"}" style="display:inline-block;background:linear-gradient(135deg,#7c3aed 0%,#4f46e5 100%);color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:14px 28px;border-radius:100px;box-shadow:0 8px 24px rgba(124,58,237,0.35), inset 0 1px 0 rgba(255,255,255,0.15);">Go to Dashboard →</a>
+              <a href="${ENV('FRONTEND_URL') || '#'}" style="display:inline-block;background:linear-gradient(135deg,#7c3aed 0%,#4f46e5 100%);color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:14px 28px;border-radius:100px;box-shadow:0 8px 24px rgba(124,58,237,0.35), inset 0 1px 0 rgba(255,255,255,0.15);">Go to Dashboard →</a>
               <div style="margin-top:10px;font-size:12px;color:#6b7280;">Or join an organization to start voting</div>
             </div>
 
@@ -92,12 +100,15 @@ export async function sendWelcomeEmail({ to, username }: WelcomeEmailPayload) {
       </div>
     </div>
   </div>
-  `);
+  `
+  );
 }
 
-
 export async function sendOTPEmail({ to, username, otp }: OTPEmailPayload) {
- return Brevo_send(to, 'Your SecureBallot Verification Code', `
+  return Brevo_send(
+    to,
+    'Your SecureBallot Verification Code',
+    `
   <div style="margin:0;padding:0;background-color:#060610;background-image:radial-gradient(1200px 600px at 20% -10%, rgba(124,58,237,0.22), transparent), radial-gradient(900px 500px at 90% 0%, rgba(59,130,246,0.18), transparent);">
     <div style="padding:40px 16px;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
       <div style="max-width:600px;margin:0 auto;">
@@ -154,12 +165,15 @@ export async function sendOTPEmail({ to, username, otp }: OTPEmailPayload) {
       </div>
     </div>
   </div>
-  `);
+  `
+  );
 }
 
-
 export async function sendPasswordResetEmail({ to, username, otp }: OTPEmailPayload) {
-  return Brevo_send(to, 'SecureBallot Password Reset', `
+  return Brevo_send(
+    to,
+    'SecureBallot Password Reset',
+    `
   <div style="margin:0;padding:0;background-color:#060610;background-image:radial-gradient(1000px 500px at 15% -10%, rgba(239,68,68,0.18), transparent), radial-gradient(1000px 500px at 85% 0%, rgba(124,58,237,0.16), transparent);">
     <div style="padding:40px 16px;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
       <div style="max-width:600px;margin:0 auto;">
@@ -236,7 +250,8 @@ export async function sendPasswordResetEmail({ to, username, otp }: OTPEmailPayl
       </div>
     </div>
   </div>
-  `);
+  `
+  );
 }
 
 export async function sendAccountRecoveryEmail(payload: OTPEmailPayload) {

@@ -4,7 +4,7 @@ import { sendWelcomeEmail } from '../workers/email.service';
 async function test() {
   try {
     const result = await sendWelcomeEmail({
-      to: 'mr.mensahgibson@gmail.com',  // ← Change this
+      to: 'mr.mensahgibson@gmail.com', // ← Change this
       username: 'Aseda',
     });
     console.log('✅ Email sent:', result);

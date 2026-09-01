@@ -4,49 +4,49 @@
 
 const REQUIRED_ENV_VARS = [
   // Server
-  "PORT",
-  "NODE_ENV",
-  "JWT_SECRET",
-  "JWT_EXPIRATION",
+  'PORT',
+  'NODE_ENV',
+  'JWT_SECRET',
+  'JWT_EXPIRATION',
   'JWT_REFRESH_EXPIRATION',
-  "API_URL",
+  'API_URL',
 
   // Database
-  "DATABASE_HOST",
-  "DATABASE_PORT",
-  "DATABASE_USERNAME",
-  "DATABASE_PASSWORD",
-  "DATABASE_NAME",
-  "DATABASE_URL",
+  'DATABASE_HOST',
+  'DATABASE_PORT',
+  'DATABASE_USERNAME',
+  'DATABASE_PASSWORD',
+  'DATABASE_NAME',
+  'DATABASE_URL',
 
   // Email
-  "RESEND_API_KEY",
-  "MAIL_FROM",
-  "VONAGE_API_KEY",
-"VONAGE_API_SECRET",
-"VONAGE_BRAND_NAME",
-"VONAGE_WHATSAPP_ENABLED",
-"VONAGE_APPLICATION_ID",
-"VONAGE_PRIVATE_KEY_PATH",
-"VONAGE_WHATSAPP_NUMBER",
-"VONAGE_MESSAGES_API_HOST",
-"BREVO_API_KEY",
-"MAIL_FROM",
-"MAIL_FROM_NAME",
-"BREVO_URL",
+  'RESEND_API_KEY',
+  'MAIL_FROM',
+  'VONAGE_API_KEY',
+  'VONAGE_API_SECRET',
+  'VONAGE_BRAND_NAME',
+  'VONAGE_WHATSAPP_ENABLED',
+  'VONAGE_APPLICATION_ID',
+  'VONAGE_PRIVATE_KEY_PATH',
+  'VONAGE_WHATSAPP_NUMBER',
+  'VONAGE_MESSAGES_API_HOST',
+  'BREVO_API_KEY',
+  'MAIL_FROM',
+  'MAIL_FROM_NAME',
+  'BREVO_URL',
 
   // SMS (comment out until Arkesel is ready)
-   "ARKESEL_API_KEY",
-   "ARKESEL_SENDER_ID",
+  'ARKESEL_API_KEY',
+  'ARKESEL_SENDER_ID',
 
-   // Admin credentials
-   "SEED_ADMIN_EMAIL",
-   "SEED_ADMIN_USERNAME",
-   "SEED_ADMIN_PASSWORD",
+  // Admin credentials
+  'SEED_ADMIN_EMAIL',
+  'SEED_ADMIN_USERNAME',
+  'SEED_ADMIN_PASSWORD',
 
-   "GMAIL_USER",
-   "GMAIL_APP_PASSWORD",
-   "FRONTEND_URL"
+  'GMAIL_USER',
+  'GMAIL_APP_PASSWORD',
+  'FRONTEND_URL',
 ] as const;
 
 // ─── TYPE: VALID ENV KEY ─────────────────────────────
@@ -58,21 +58,21 @@ export function VALIDATE_ENV(): void {
 
   for (const key of REQUIRED_ENV_VARS) {
     const value = process.env[key];
-    if (!value || value.trim() === "") {
+    if (!value || value.trim() === '') {
       missing.push(key);
     }
   }
 
   if (missing.length > 0) {
-    console.error("─────────────────────────────────────────");
-    console.error("❌ MISSING REQUIRED ENVIRONMENT VARIABLES:");
+    console.error('─────────────────────────────────────────');
+    console.error('❌ MISSING REQUIRED ENVIRONMENT VARIABLES:');
     missing.forEach((key) => console.error(`   → ${key}`));
-    console.error("─────────────────────────────────────────");
-    console.error("Server cannot start. Add missing variables to .env");
+    console.error('─────────────────────────────────────────');
+    console.error('Server cannot start. Add missing variables to .env');
     process.exit(1); // Crash immediately. Fail fast.
   }
 
-  console.log("✅ Environment variables validated.");
+  console.log('✅ Environment variables validated.');
 }
 
 // ─── GET ENV VAR (TYPE-SAFE, NO ASSERTION NEEDED) ────

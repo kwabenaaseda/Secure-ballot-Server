@@ -1,4 +1,4 @@
-import { NetworkContext, AuthContext } from "../../../lib/ops/ops.types";
+import { NetworkContext, AuthContext } from '../../../lib/ops/ops.types';
 
 export interface AddCandidatePayload {
   election_id: string;
@@ -8,7 +8,7 @@ export interface AddCandidatePayload {
   summary?: string;
   manifesto?: string;
   nationality?: string;
-  creator_id: string;         // must be active admin/moderator of election's org
+  creator_id: string; // must be active admin/moderator of election's org
   network: NetworkContext;
   auth: AuthContext;
 }

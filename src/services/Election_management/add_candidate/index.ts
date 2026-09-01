@@ -1,32 +1,31 @@
-import { Service_Error_Handler, Service_Success_Handler } from "../../../types/Response_handler";
-import { OPS_Success, OPS_Error } from "../../../lib/ops/ops.factory";
-import { Log } from "../../../utils/Logger";
-import { AddCandidatePayload } from "./types";
-import { AppDataSource } from "../../../config/database";
-import { Candidate } from "../../../entities/Candidates";
-import { Election } from "../../../entities/Election";
-import { OrgMembers } from "../../../entities/OrgMembers";
-import { VoteTally } from "../../../entities/Vote_tally";
+import { Service_Error_Handler, Service_Success_Handler } from '../../../types/Response_handler';
+import { OPS_Success, OPS_Error } from '../../../lib/ops/ops.factory';
+import { Log } from '../../../utils/Logger';
+import { AddCandidatePayload } from './types';
+import { AppDataSource } from '../../../config/database';
+import { Candidate } from '../../../entities/Candidates';
+import { Election } from '../../../entities/Election';
+import { OrgMembers } from '../../../entities/OrgMembers';
+import { VoteTally } from '../../../entities/Vote_tally';
 
-const EVENT  = "CANDIDATE_ADD";
-const SOURCE = "AddCandidate_Operation";
+const EVENT = 'CANDIDATE_ADD';
+const SOURCE = 'AddCandidate_Operation';
 
 export async function AddCandidate_Operation(
   payload: AddCandidatePayload
 ): Promise<Service_Success_Handler | Service_Error_Handler> {
-
   const started_at = Date.now();
 
   const ops_base = {
-    event:      EVENT,
-    source:     SOURCE,
-    actor_type: "ORG_ADMIN" as const,
-    actor_id:   payload.creator_id,
+    event: EVENT,
+    source: SOURCE,
+    actor_type: 'ORG_ADMIN' as const,
+    actor_id: payload.creator_id,
     started_at,
-    network:    payload.network,
-    auth:       payload.auth,
-    classification:  "INTERNAL"  as const,
-    integrity_class: "SENSITIVE" as const,
+    network: payload.network,
+    auth: payload.auth,
+    classification: 'INTERNAL' as const,
+    integrity_class: 'SENSITIVE' as const,
     election_id: payload.election_id,
   };
 
@@ -41,10 +40,10 @@ export async function AddCandidate_Operation(
       await queryRunner.rollbackTransaction();
       return await OPS_Error({
         ...ops_base,
-        status: "OPERATION_FAILURE",
-        message: "election_id, fullname, and category are required.",
-        error_code: "MISSING_REQUIRED_FIELDS",
-        error_category: "VALIDATION",
+        status: 'OPERATION_FAILURE',
+        message: 'election_id, fullname, and category are required.',
+        error_code: 'MISSING_REQUIRED_FIELDS',
+        error_category: 'VALIDATION',
         retryable: true,
       });
     }
@@ -52,29 +51,30 @@ export async function AddCandidate_Operation(
     // ── Load election + confirm still editable ──────────────────────────────
     const electionRepo = queryRunner.manager.getRepository(Election);
     const election = await electionRepo.findOne({
-      where: { id: election_id }, relations: ["org"],
+      where: { id: election_id },
+      relations: ['org'],
     });
 
     if (!election) {
       await queryRunner.rollbackTransaction();
       return await OPS_Error({
         ...ops_base,
-        status: "OPERATION_FAILURE",
-        message: "Election not found.",
-        error_code: "ELECTION_NOT_FOUND",
-        error_category: "VALIDATION",
+        status: 'OPERATION_FAILURE',
+        message: 'Election not found.',
+        error_code: 'ELECTION_NOT_FOUND',
+        error_category: 'VALIDATION',
         retryable: false,
       });
     }
 
-    if (election.status !== "draft") {
+    if (election.status !== 'draft') {
       await queryRunner.rollbackTransaction();
       return await OPS_Error({
         ...ops_base,
-        status: "OPERATION_FAILURE",
-        message: "Candidates can only be added while the election is in draft.",
-        error_code: "ELECTION_NOT_EDITABLE",
-        error_category: "VALIDATION",
+        status: 'OPERATION_FAILURE',
+        message: 'Candidates can only be added while the election is in draft.',
+        error_code: 'ELECTION_NOT_EDITABLE',
+        error_category: 'VALIDATION',
         retryable: false,
       });
     }
@@ -85,15 +85,18 @@ export async function AddCandidate_Operation(
       where: { org: { id: election.org.id }, user: { id: creator_id } },
     });
 
-    if (!membership || membership.status !== "active" ||
-        !["admin", "moderator"].includes(membership.role)) {
+    if (
+      !membership ||
+      membership.status !== 'active' ||
+      !['admin', 'moderator'].includes(membership.role)
+    ) {
       await queryRunner.rollbackTransaction();
       return await OPS_Error({
         ...ops_base,
-        status: "OPERATION_FAILURE",
-        message: "Only active org admins or moderators can add candidates.",
-        error_code: "NOT_AUTHORIZED",
-        error_category: "AUTH",
+        status: 'OPERATION_FAILURE',
+        message: 'Only active org admins or moderators can add candidates.',
+        error_code: 'NOT_AUTHORIZED',
+        error_category: 'AUTH',
         retryable: false,
       });
     }
@@ -107,7 +110,7 @@ export async function AddCandidate_Operation(
     candidate.summary = payload.summary ?? null;
     candidate.manifesto = payload.manifesto ?? null;
     candidate.nationality = payload.nationality ?? null;
-    candidate.vetting_status = "pending";
+    candidate.vetting_status = 'pending';
     const savedCandidate = await queryRunner.manager.save(candidate);
 
     // ── INITIALIZE VOTE TALLY ROW AT ZERO ─────────────────────────────────────
@@ -116,38 +119,38 @@ export async function AddCandidate_Operation(
     // One less race condition to reason about at vote time, which is the
     // operation that matters most.
     const tally = queryRunner.manager.create(VoteTally, {
-  candidate_id: savedCandidate.id,
-  election_id:  election_id,
-  vote_count:   0,
-});
+      candidate_id: savedCandidate.id,
+      election_id: election_id,
+      vote_count: 0,
+    });
     await queryRunner.manager.save(tally);
 
     await queryRunner.commitTransaction();
 
-    Log.info(SOURCE, "Candidate added successfully", EVENT);
+    Log.info(SOURCE, 'Candidate added successfully', EVENT);
 
     return await OPS_Success({
       ...ops_base,
-      status: "COMPLETED",
-      message: "Candidate added successfully.",
+      status: 'COMPLETED',
+      message: 'Candidate added successfully.',
       data: {
         candidate: {
-          id: savedCandidate.id, fullname: savedCandidate.fullname,
+          id: savedCandidate.id,
+          fullname: savedCandidate.fullname,
           category: savedCandidate.category,
         },
       },
     });
-
   } catch (error) {
     await queryRunner.rollbackTransaction();
     Log.debug(SOURCE, String(error), EVENT);
 
     return await OPS_Error({
       ...ops_base,
-      status: "SYSTEM_FAILURE",
+      status: 'SYSTEM_FAILURE',
       message: `An unexpected error occurred during ${EVENT}. `,
-      error_code: "INTERNAL_ERROR",
-      error_category: "SYSTEM",
+      error_code: 'INTERNAL_ERROR',
+      error_category: 'SYSTEM',
       retryable: true,
       retry_after_ms: 5000,
       stack_ref: `${EVENT}_${started_at}`,

@@ -1,4 +1,4 @@
-import { NetworkContext, AuthContext } from "../../../lib/ops/ops.types";
+import { NetworkContext, AuthContext } from '../../../lib/ops/ops.types';
 
 export interface CastVotePayload {
   election_id: string;

@@ -13,7 +13,7 @@ export async function ResendOTP_Controller(req: Request, res: Response) {
   const network = req.networkContext;
   const userId = req.user?.id;
   if (!network || !userId) {
-    return res.status(400).json({ success: false, message: "Invalid User" });
+    return res.status(400).json({ success: false, message: 'Invalid User' });
   }
   const result = await Resend_OTP({ userId, network });
   if (!result.success) {
@@ -22,28 +22,27 @@ export async function ResendOTP_Controller(req: Request, res: Response) {
   return res.status(200).json({ success: true, message: result._OPS_MESSAGE });
 }
 
-
 export async function Signup_Controller(req: Request, res: Response) {
   // Validate input
   const parsed = SignupSchema.safeParse(req.body);
-  const network = req.networkContext
+  const network = req.networkContext;
 
-  if (!network || network == undefined){
-     return res.status(400).json({
+  if (!network || network == undefined) {
+    return res.status(400).json({
       success: false,
-      message: "Invalid User",
+      message: 'Invalid User',
     });
   }
   if (!parsed.success) {
     return res.status(400).json({
       success: false,
-      message: "Invalid input",
+      message: 'Invalid input',
       errors: parsed.error.flatten().fieldErrors,
     });
   }
 
   // Call service
-  const params = {...parsed.data, network}
+  const params = { ...parsed.data, network };
   const result = await Signup_Operation(params);
 
   if (!result.success) {
@@ -61,24 +60,24 @@ export async function Signup_Controller(req: Request, res: Response) {
 }
 export async function Login_Controller(req: Request, res: Response) {
   const parsed = LoginSchema.safeParse(req.body);
-  const network = req.networkContext
+  const network = req.networkContext;
 
-  if (!network || network == undefined){
-     return res.status(400).json({
+  if (!network || network == undefined) {
+    return res.status(400).json({
       success: false,
-      message: "Invalid User",
+      message: 'Invalid User',
     });
   }
 
   if (!parsed.success) {
     return res.status(400).json({
       success: false,
-      message: "Invalid input",
+      message: 'Invalid input',
       errors: parsed.error.flatten().fieldErrors,
     });
   }
-  
-  const params = {...parsed.data, network}
+
+  const params = { ...parsed.data, network };
 
   const result = await Login_Operation(params);
 
@@ -101,17 +100,17 @@ export async function VerifyOTP_Controller(req: Request, res: Response) {
   const userId = req.user?.id;
   const network = req.networkContext;
 
-  if (!network || network == undefined){
+  if (!network || network == undefined) {
     return res.status(400).json({
       success: false,
-      message: "Invalid User",
+      message: 'Invalid User',
     });
   }
 
   if (!otp || !userId) {
     return res.status(400).json({
       success: false,
-      message: "OTP is required.",
+      message: 'OTP is required.',
     });
   }
 
@@ -128,31 +127,29 @@ export async function VerifyOTP_Controller(req: Request, res: Response) {
   return res.status(200).json({
     success: true,
     message: result._OPS_MESSAGE,
-    data: result._OPS_DATA,   // ← this line was missing
+    data: result._OPS_DATA, // ← this line was missing
   });
 }
-export async function Forgot_Password_Controller(req:Request, res:Response) {
+export async function Forgot_Password_Controller(req: Request, res: Response) {
+  const parsed = ResetSchema.safeParse(req.body);
+  const network = req.networkContext;
 
-  const parsed = ResetSchema.safeParse(req.body)
-  const network = req.networkContext
-
-  if (!network || network == undefined){
-     return res.status(400).json({
-      success: false,
-      message: "Invalid User",
-    });
-  }
-  
-   if (!parsed.success) {
+  if (!network || network == undefined) {
     return res.status(400).json({
       success: false,
-      message: "Invalid input",
+      message: 'Invalid User',
+    });
+  }
+
+  if (!parsed.success) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid input',
       errors: parsed.error.flatten().fieldErrors,
     });
   }
-  
 
-  const result = await Forgot_Password(parsed.data, network)
+  const result = await Forgot_Password(parsed.data, network);
 
   if (!result.success) {
     return res.status(400).json({
@@ -165,5 +162,4 @@ export async function Forgot_Password_Controller(req:Request, res:Response) {
     success: true,
     message: result._OPS_MESSAGE,
   });
-
 }

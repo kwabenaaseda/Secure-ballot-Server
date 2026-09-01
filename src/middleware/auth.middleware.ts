@@ -11,23 +11,19 @@ declare global {
         id: string;
         email: string;
         username: string;
-        token:{
-          token: string,
-          token_range:string,
-          token_verification: string,
-          token_user_status: string,
-          token_data?:string
-        }
+        token: {
+          token: string;
+          token_range: string;
+          token_verification: string;
+          token_user_status: string;
+          token_data?: string;
+        };
       };
     }
   }
 }
 
-export async function AuthMiddleware(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
+export async function AuthMiddleware(req: Request, res: Response, next: NextFunction) {
   try {
     // ── STEP 1: GET TOKEN FROM HEADER ──────────────────
     const authHeader = req.headers.authorization;
@@ -35,21 +31,21 @@ export async function AuthMiddleware(
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({
         success: false,
-        message: "Unauthorized. No token provided.",
+        message: 'Unauthorized. No token provided.',
       });
     }
 
     const token = authHeader.split(' ')[1];
 
     // ── STEP 2: VERIFY TOKEN ───────────────────────────
-    const decoded = await VerifyToken(token) as any;
+    const decoded = (await VerifyToken(token)) as any;
 
     // ── STEP 2.5: CHECKSUM FAIL FAST ───────────────────────────
-    if(!token || !decoded.range || !decoded.verification || !decoded.user_status || !decoded.sub){
+    if (!token || !decoded.range || !decoded.verification || !decoded.user_status || !decoded.sub) {
       return res.status(401).json({
-        success:false,
-        message:"Malformed token. Please retry action after 2 minutes"
-      })
+        success: false,
+        message: 'Malformed token. Please retry action after 2 minutes',
+      });
     }
 
     // ── STEP 3: ATTACH USER TO REQUEST ─────────────────
@@ -57,22 +53,21 @@ export async function AuthMiddleware(
       id: decoded.sub,
       email: decoded.email,
       username: decoded.username,
-      token:{
-          token: token,
-          token_range:decoded.range,
-          token_verification: decoded.verification,
-          token_user_status: decoded.user_status,
-          token_data: decoded.data?decoded.data:false
-        }
+      token: {
+        token: token,
+        token_range: decoded.range,
+        token_verification: decoded.verification,
+        token_user_status: decoded.user_status,
+        token_data: decoded.data ? decoded.data : false,
+      },
     };
 
     next();
-
   } catch (error) {
-    Log.warn("AuthMiddleware", String(error), "AUTH");
+    Log.warn('AuthMiddleware', String(error), 'AUTH');
     return res.status(401).json({
       success: false,
-      message: "Unauthorized. Invalid or expired token.",
+      message: 'Unauthorized. Invalid or expired token.',
     });
   }
 }

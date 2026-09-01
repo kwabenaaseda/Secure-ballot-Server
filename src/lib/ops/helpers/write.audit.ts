@@ -1,16 +1,13 @@
-import { AppDataSource } from "../../../config/database";
+import { AppDataSource } from '../../../config/database';
 import {
   AuditLog,
   AuditActorType,
   AuditClassification,
   AuditIntegrityClass,
   AuditOpsStatus,
-} from "../../../entities/audit_log";
-import {
-  Service_Success_Handler,
-  Service_Error_Handler,
-} from "../../../types/Response_handler";
-import { buildIntegrityProof } from "./build.integrity";
+} from '../../../entities/audit_log';
+import { Service_Success_Handler, Service_Error_Handler } from '../../../types/Response_handler';
+import { buildIntegrityProof } from './build.integrity';
 
 type AnyHandler = Service_Success_Handler | Service_Error_Handler;
 
@@ -30,9 +27,8 @@ type AnyHandler = Service_Success_Handler | Service_Error_Handler;
 
 export async function writeAuditLog(
   success: Service_Success_Handler | null,
-  error:   Service_Error_Handler   | null
+  error: Service_Error_Handler | null
 ): Promise<void> {
-
   const handler = (success ?? error) as AnyHandler;
   if (!handler) return;
 
@@ -55,74 +51,72 @@ export async function writeAuditLog(
       handler.success,
       handler._OPS_STATUS,
       handler._OPS_MESSAGE,
-      queryRunner       // ← transaction context
+      queryRunner // ← transaction context
     );
 
     // ── Build the entity ─────────────────────────────────────────────────────
     const entry = new AuditLog();
 
     // Backward-compat columns
-    entry.action    = m._event;
+    entry.action = m._event;
     entry.target_id = m._election_id ?? null;
-    entry.metadata  = null;
+    entry.metadata = null;
 
     // OPS Meta
-    entry.event           = m._event;
-    entry.event_id        = m._event_id;
-    entry.source          = m._source;
-    entry.correlation_id  = m._correlation_id;
-    entry.session_id      = m._session_id;
-    entry.duration_ms     = m._duration_ms;
-    entry.actor_type      = m._actor_type as AuditActorType;
-    entry.actor_id        = m._actor_id;
-    entry.election_id     = m._election_id ?? null;
-    entry.org_id          = m._org_id      ?? null;
-    entry.node_id         = m._node_id;
-    entry.region          = m._region;
-    entry.version         = m._version;
+    entry.event = m._event;
+    entry.event_id = m._event_id;
+    entry.source = m._source;
+    entry.correlation_id = m._correlation_id;
+    entry.session_id = m._session_id;
+    entry.duration_ms = m._duration_ms;
+    entry.actor_type = m._actor_type as AuditActorType;
+    entry.actor_id = m._actor_id;
+    entry.election_id = m._election_id ?? null;
+    entry.org_id = m._org_id ?? null;
+    entry.node_id = m._node_id;
+    entry.region = m._region;
+    entry.version = m._version;
     entry.event_timestamp = new Date(m._timestamp);
 
     // Security Audit
-    entry.classification          = s._classification  as AuditClassification;
-    entry.integrity_class         = s._integrity_class as AuditIntegrityClass;
-    entry.threat_signals          = s._threat_signals;
-    entry.threat_score            = s._threat_score;
-    entry.auth_factors_used       = s._auth_factors_used;
-    entry.auth_confidence         = s._auth_confidence;
-    entry.mfa_verified            = s._mfa_verified;
-    entry.ip_hash                 = s._ip_hash;
+    entry.classification = s._classification as AuditClassification;
+    entry.integrity_class = s._integrity_class as AuditIntegrityClass;
+    entry.threat_signals = s._threat_signals;
+    entry.threat_score = s._threat_score;
+    entry.auth_factors_used = s._auth_factors_used;
+    entry.auth_confidence = s._auth_confidence;
+    entry.mfa_verified = s._mfa_verified;
+    entry.ip_hash = s._ip_hash;
     entry.device_fingerprint_hash = s._device_fingerprint_hash;
-    entry.user_agent_class        = s._user_agent_class;
+    entry.user_agent_class = s._user_agent_class;
 
     // Integrity Proof (sequence_number excluded — BIGSERIAL sets it)
-    entry.entry_hash     = integrity._entry_hash;
-    entry.chain_hash     = integrity._chain_hash;
-    entry.signed_by      = integrity._signed_by;
-    entry.signature      = integrity._signature;
+    entry.entry_hash = integrity._entry_hash;
+    entry.chain_hash = integrity._chain_hash;
+    entry.signed_by = integrity._signed_by;
+    entry.signature = integrity._signature;
     entry.log_segment_id = integrity._log_segment_id!;
 
     // Operation result
-    entry.success     = handler.success;
-    entry.ops_status  = handler._OPS_STATUS as AuditOpsStatus;
+    entry.success = handler.success;
+    entry.ops_status = handler._OPS_STATUS as AuditOpsStatus;
     entry.ops_message = handler._OPS_MESSAGE;
 
     if (!handler.success) {
       const e = (handler as Service_Error_Handler)._OPS_ERROR;
-      entry.error_code     = e.code;
+      entry.error_code = e.code;
       entry.error_category = e.category;
-      entry.retryable      = e.retryable;
+      entry.retryable = e.retryable;
     } else {
-      entry.error_code     = null;
+      entry.error_code = null;
       entry.error_category = null;
-      entry.retryable      = null;
+      entry.retryable = null;
     }
 
     // ── INSERT (never save — INSERT only enforces append-only at ORM layer) ──
     // queryRunner.manager.insert returns the generated identifiers including
     // the BIGSERIAL sequence_number assigned by Postgres.
-    const result = await queryRunner.manager
-      .getRepository(AuditLog)
-      .insert(entry);
+    const result = await queryRunner.manager.getRepository(AuditLog).insert(entry);
 
     // Commit — this also releases the advisory lock
     await queryRunner.commitTransaction();
@@ -134,7 +128,6 @@ export async function writeAuditLog(
         `[AUDIT] ${m._event} #${assignedSequence} chain=${integrity._chain_hash.slice(0, 12)}...`
       );
     }
-
   } catch (err) {
     await queryRunner.rollbackTransaction();
     // Re-throw so ops.factory.ts catch handler can log it

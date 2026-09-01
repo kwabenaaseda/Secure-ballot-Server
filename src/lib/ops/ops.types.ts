@@ -4,7 +4,7 @@ import {
   INTEGRITY_CLASS,
   SECURITY_CLASSIFICATION,
   THREAT_SIGNAL,
-} from "../../types/Response_handler";
+} from '../../types/Response_handler';
 
 // ─── NETWORK CONTEXT ─────────────────────────────────────────────────────────
 // Carried in every payload so the controller stays minimal.
@@ -12,11 +12,11 @@ import {
 // the service operation. Nothing raw — IP and device are hashed at source.
 
 export interface NetworkContext {
-  ip_hash: string;                  // SHA3(raw_ip + server_salt) — done in middleware
-  device_fingerprint_hash?: string | any;  // SHA3(user_agent + screen + timezone + ...) — done client-side
-  user_agent_class: "MOBILE_APP" | "DESKTOP_APP" | "BROWSER";
-  correlation_id: string;           // UUID generated at request entry point
-  session_id: string;               // active session ID or "NONE" for pre-auth
+  ip_hash: string; // SHA3(raw_ip + server_salt) — done in middleware
+  device_fingerprint_hash?: string | any; // SHA3(user_agent + screen + timezone + ...) — done client-side
+  user_agent_class: 'MOBILE_APP' | 'DESKTOP_APP' | 'BROWSER';
+  correlation_id: string; // UUID generated at request entry point
+  session_id: string; // active session ID or "NONE" for pre-auth
 }
 
 // ─── AUTH CONTEXT ─────────────────────────────────────────────────────────────
@@ -24,8 +24,8 @@ export interface NetworkContext {
 // For signup: only PASSWORD is used initially. OTP comes in verification step.
 
 export interface AuthContext {
-  factors_used: string[];           // e.g. ["PASSWORD"], ["PASSWORD","OTP","BIOMETRIC"]
-  confidence: number;               // 0.0–1.0; 1.0 for non-biometric hard factors
+  factors_used: string[]; // e.g. ["PASSWORD"], ["PASSWORD","OTP","BIOMETRIC"]
+  confidence: number; // 0.0–1.0; 1.0 for non-biometric hard factors
   mfa_verified: boolean;
 }
 
@@ -34,11 +34,11 @@ export interface AuthContext {
 
 export interface OPS_Input {
   // operation identity
-  event: string;                    // e.g. "SIGNUP", "VOTE_SUBMIT"
-  source: string;                   // e.g. "Signup_Operation"
+  event: string; // e.g. "SIGNUP", "VOTE_SUBMIT"
+  source: string; // e.g. "Signup_Operation"
   actor_type: ACTOR_TYPE;
-  actor_id: string;                 // raw — OPS() will hash it internally
-  started_at: number;               // Date.now() captured at operation start
+  actor_id: string; // raw — OPS() will hash it internally
+  started_at: number; // Date.now() captured at operation start
   election_id?: string;
   org_id?: string;
 
@@ -60,7 +60,7 @@ export interface OPS_Input {
 // ─── OPS SUCCESS PARAMS ───────────────────────────────────────────────────────
 
 export interface OPS_Success_Params extends OPS_Input {
-  status: "COMPLETED" | "PENDING";
+  status: 'COMPLETED' | 'PENDING';
   message: string;
   data?: object;
 }
@@ -68,7 +68,7 @@ export interface OPS_Success_Params extends OPS_Input {
 // ─── OPS ERROR PARAMS ─────────────────────────────────────────────────────────
 
 export interface OPS_Error_Params extends OPS_Input {
-  status: "OPERATION_FAILURE" | "SYSTEM_FAILURE";
+  status: 'OPERATION_FAILURE' | 'SYSTEM_FAILURE';
   message: string;
   error_code: string;
   error_category: ERROR_CATEGORY;

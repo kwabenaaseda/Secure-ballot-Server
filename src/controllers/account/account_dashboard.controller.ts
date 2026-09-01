@@ -1,16 +1,15 @@
-import { Request, Response } from "express";
-import { GetDashboard_Operation } from "../../services/account/get_dashboard";
-
+import { Request, Response } from 'express';
+import { GetDashboard_Operation } from '../../services/account/get_dashboard';
 
 export async function GetDashboard_Controller(req: Request, res: Response) {
   const network = req.networkContext;
   if (!network) {
-    return res.status(400).json({ success: false, message: "Invalid User" });
+    return res.status(400).json({ success: false, message: 'Invalid User' });
   }
 
   const user_id = req.user?.id;
   if (!user_id) {
-    return res.status(401).json({ success: false, message: "Unauthorized" });
+    return res.status(401).json({ success: false, message: 'Unauthorized' });
   }
 
   const result = await GetDashboard_Operation({ userId: user_id, network });
@@ -23,4 +22,4 @@ export async function GetDashboard_Controller(req: Request, res: Response) {
     message: result._OPS_MESSAGE,
     data: result._OPS_DATA,
   });
-}   
+}

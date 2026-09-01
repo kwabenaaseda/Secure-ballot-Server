@@ -1,19 +1,18 @@
-import { ENV } from "./env_validator";
+import { ENV } from './env_validator';
 
-const BREVO_API_KEY = ENV("BREVO_API_KEY");
-const MAIL_FROM = ENV("MAIL_FROM") || ENV("GMAIL_USER");
-const MAIL_FROM_NAME = ENV("MAIL_FROM_NAME")
+const BREVO_API_KEY = ENV('BREVO_API_KEY');
+const MAIL_FROM = ENV('MAIL_FROM') || ENV('GMAIL_USER');
+const MAIL_FROM_NAME = ENV('MAIL_FROM_NAME');
 const BREVO_URL = ENV('BREVO_URL');
-
 
 export async function Brevo_send(to: string, subject: string, html: string) {
   try {
     const response = await fetch(BREVO_URL, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "accept": "application/json",
-        "api-key": BREVO_API_KEY,
-        "content-type": "application/json",
+        accept: 'application/json',
+        'api-key': BREVO_API_KEY,
+        'content-type': 'application/json',
       },
       body: JSON.stringify({
         sender: { name: MAIL_FROM_NAME, email: MAIL_FROM },
@@ -31,6 +30,8 @@ export async function Brevo_send(to: string, subject: string, html: string) {
     return await response.json();
   } catch (error) {
     console.error(`Email send error (${subject}):`, error);
-    throw new Error(`Failed to send email: ${error instanceof Error ? error.message : String(error)}`);
+    throw new Error(
+      `Failed to send email: ${error instanceof Error ? error.message : String(error)}`
+    );
   }
 }

@@ -2,7 +2,6 @@ import { Request, Response } from 'express';
 import { AdminLogin_Operation } from '../../services/auth_mod_sys_admin/login';
 import { OnboardAdmin_Operation } from '../../services/auth_mod_sys_admin/onbaord';
 
-
 export async function AdminLogin_Controller(req: Request, res: Response) {
   const { email, password } = req.body;
 

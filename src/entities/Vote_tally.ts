@@ -1,6 +1,4 @@
-import {
-  Entity, Column, ManyToOne, JoinColumn, PrimaryColumn
-} from 'typeorm';
+import { Entity, Column, ManyToOne, JoinColumn, PrimaryColumn } from 'typeorm';
 import { Candidate } from './Candidates';
 import { Election } from './Election';
 

@@ -1,7 +1,5 @@
 // src/entities/RolePermission.ts
-import {
-  Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Unique
-} from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Unique } from 'typeorm';
 
 @Entity('role_permissions')
 @Unique(['role', 'resource', 'action'])
@@ -19,7 +17,7 @@ export class RolePermission {
   action: string; // e.g. "read"
 
   @Column({ type: 'varchar', default: 'ALLOW' })
-  effect: "ALLOW" | "DENY";
+  effect: 'ALLOW' | 'DENY';
 
   @CreateDateColumn({ type: 'timestamptz' })
   created_at: Date;
