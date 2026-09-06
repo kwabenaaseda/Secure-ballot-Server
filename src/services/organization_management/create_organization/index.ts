@@ -82,6 +82,7 @@ export async function CreateOrganization_Operation(
       description: payload.description ?? undefined,
       established_year: payload.established_year ?? undefined,
       visibility,
+      join_code: visibility === 'private' ? (payload.join_code ?? null) : null,
       primary_admin: { id: creator_id } as any,
       status: 'pending',
       verification_documents: payload.verification_documents ?? undefined,

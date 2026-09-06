@@ -23,9 +23,6 @@ export class InitialSchema1786586192545 implements MigrationInterface {
       `CREATE TABLE "organization_auth" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "custom_fields" jsonb NOT NULL, "schema_version" integer NOT NULL DEFAULT '1', "status" character varying NOT NULL DEFAULT 'draft', "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "org_id" uuid NOT NULL, CONSTRAINT "PK_79f0fb80cbe1f4944420a060e02" PRIMARY KEY ("id"))`
     );
     await queryRunner.query(
-      `CREATE TABLE "org_structure" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "category" character varying NOT NULL, "values" jsonb NOT NULL, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "org_id" uuid NOT NULL, CONSTRAINT "PK_78f83709ace9524806283694426" PRIMARY KEY ("id"))`
-    );
-    await queryRunner.query(
       `CREATE TABLE "org_members" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "role" character varying NOT NULL DEFAULT 'voter', "status" character varying NOT NULL DEFAULT 'pending', "verified_via" character varying, "joined_at" TIMESTAMP WITH TIME ZONE, "org_id" uuid NOT NULL, "user_id" uuid NOT NULL, CONSTRAINT "UQ_986db88b0e82a9189921841199b" UNIQUE ("org_id", "user_id"), CONSTRAINT "PK_8391a72b91725161ab2cab00be9" PRIMARY KEY ("id"))`
     );
     await queryRunner.query(
@@ -103,9 +100,7 @@ export class InitialSchema1786586192545 implements MigrationInterface {
     await queryRunner.query(
       `ALTER TABLE "organization_auth" ADD CONSTRAINT "FK_441d92b61dbaeb6ee502f902094" FOREIGN KEY ("org_id") REFERENCES "organizations"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`
     );
-    await queryRunner.query(
-      `ALTER TABLE "org_structure" ADD CONSTRAINT "FK_89447fef2de0fe81d0c9bdf06b9" FOREIGN KEY ("org_id") REFERENCES "organizations"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`
-    );
+    // org_structure table removed from schema (not used).
     await queryRunner.query(
       `ALTER TABLE "org_members" ADD CONSTRAINT "FK_a35e7519ef33c0dd4d24bb15056" FOREIGN KEY ("org_id") REFERENCES "organizations"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`
     );
@@ -163,9 +158,7 @@ export class InitialSchema1786586192545 implements MigrationInterface {
     await queryRunner.query(
       `ALTER TABLE "org_members" DROP CONSTRAINT "FK_a35e7519ef33c0dd4d24bb15056"`
     );
-    await queryRunner.query(
-      `ALTER TABLE "org_structure" DROP CONSTRAINT "FK_89447fef2de0fe81d0c9bdf06b9"`
-    );
+    // org_structure constraint removed earlier; nothing to drop here.
     await queryRunner.query(
       `ALTER TABLE "organization_auth" DROP CONSTRAINT "FK_441d92b61dbaeb6ee502f902094"`
     );
@@ -208,7 +201,7 @@ export class InitialSchema1786586192545 implements MigrationInterface {
     await queryRunner.query(`DROP TABLE "vote_records"`);
     await queryRunner.query(`DROP TABLE "elections"`);
     await queryRunner.query(`DROP TABLE "org_members"`);
-    await queryRunner.query(`DROP TABLE "org_structure"`);
+    // org_structure table removed earlier; nothing to drop here.
     await queryRunner.query(`DROP TABLE "organization_auth"`);
     await queryRunner.query(`DROP TABLE "token_blacklist"`);
     await queryRunner.query(`DROP TABLE "org_member_profile_edits"`);

@@ -11,6 +11,7 @@ import {
   ApproveJoinRequest_Controller,
   DenyJoinRequest_Controller,
   DeleteOrganization_Controller,
+  VerifyOrgCode_Controller,
 } from '../../controllers/organization/organization.controller';
 import { AuthMiddleware } from '../../middleware/auth.middleware';
 import { NetworkContextMiddleware } from '../../middleware/networkContext';
@@ -23,6 +24,8 @@ Org_routes.get('/:orgId', AuthMiddleware, NetworkContextMiddleware, Get_Org_Deta
 Org_routes.delete('/:orgId', AuthMiddleware, NetworkContextMiddleware, DeleteOrganization_Controller);
 
 // ── Membership & join management ────────────────────────────────────────────
+// Passcode gate MUST be registered before /:orgId/join.
+Org_routes.post('/:orgId/verify-code', AuthMiddleware, NetworkContextMiddleware, VerifyOrgCode_Controller);
 Org_routes.post('/:orgId/join', AuthMiddleware, NetworkContextMiddleware, JoinOrganization_Controller);
 
 // Org-admin member management

@@ -7,6 +7,8 @@ import { OrganizationAuth } from '../../../entities/Org_auth';
 import { OrgMembers } from '../../../entities/OrgMembers';
 import { OrgMemberProfiles } from '../../../entities/OrgMember_profile';
 import { NetworkContext } from '../../../lib/ops/ops.types';
+import { hasJoinGrant } from '../../organization/verify_code';
+import { Organization } from '../../../entities/Organization';
 
 const EVENT = 'ORG_JOIN';
 const SOURCE = 'JoinOrganization_Operation';
@@ -35,6 +37,32 @@ export async function JoinOrganization_Operation(payload: {
   await queryRunner.startTransaction();
 
   try {
+    // PRIVATE orgs require a verified shortcode grant (verify-code endpoint)
+    // before a join can even be attempted — no direct-API bypass.
+    const org = await AppDataSource.getRepository(Organization).findOneBy({ id: payload.orgId });
+    if (!org) {
+      await queryRunner.rollbackTransaction();
+      return await OPS_Error({
+        ...ops_base,
+        status: 'OPERATION_FAILURE',
+        message: 'Organization not found.',
+        error_code: 'ORG_NOT_FOUND',
+        error_category: 'VALIDATION',
+        retryable: false,
+      });
+    }
+    if (org.visibility === 'private' && !hasJoinGrant(payload.userId, payload.orgId)) {
+      await queryRunner.rollbackTransaction();
+      return await OPS_Error({
+        ...ops_base,
+        status: 'OPERATION_FAILURE',
+        message: 'Enter the organization passcode before requesting to join.',
+        error_code: 'SHORTCODE_REQUIRED',
+        error_category: 'AUTH',
+        retryable: false,
+      });
+    }
+
     const existing = await queryRunner.manager.getRepository(OrgMembers).findOne({
       where: { org: { id: payload.orgId }, user: { id: payload.userId } },
     });

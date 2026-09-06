@@ -116,7 +116,11 @@ export async function GetElectionResults_Operation(params: {
     const categoryTotal = catCandidates.reduce((sum, c) => sum + c.votes, 0);
 
     // Competition ranking (1st, 2nd, 2nd, 4th…): tied vote counts share a
-    // rank and the next rank is skipped.
+    // rank and the next rank is skipped. A `tied` flag marks candidates that
+    // share their place with at least one other candidate.
+    const voteCounts = new Map<number, number>();
+    for (const c of catCandidates) voteCounts.set(c.votes, (voteCounts.get(c.votes) ?? 0) + 1);
+
     let lastVotes: number | null = null;
     let lastRank = 0;
     const ranked = catCandidates.map((c, i) => {
@@ -126,15 +130,20 @@ export async function GetElectionResults_Operation(params: {
       return {
         ...c,
         rank,
+        tied: (voteCounts.get(c.votes) ?? 1) > 1,
         is_winner: rank === 1 && c.votes > 0,
         percentage: categoryTotal > 0 ? round1((c.votes / categoryTotal) * 100) : 0,
       };
     });
 
+    // A tied 1st place cannot be crowned a single winner — surface it as a tie.
+    const topTied = ranked.filter((c) => c.is_winner && c.tied);
     return {
       category,
       total: categoryTotal,
-      winner: ranked.find((c) => c.is_winner)?.fullname ?? null,
+      winner: topTied.length > 0 ? null : (ranked.find((c) => c.is_winner)?.fullname ?? null),
+      tie: topTied.length > 0,
+      tied_names: topTied.map((c) => c.fullname),
       candidates: ranked,
     };
   });

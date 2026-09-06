@@ -40,6 +40,12 @@ export class Organization {
   @Column({ type: 'varchar', default: 'private' })
   visibility: string; // private | public
 
+  // Short passcode required to open the join flow of a PRIVATE org. Shared
+  // group passphrase (not a personal secret), stored as-is, never returned by
+  // any read endpoint. Null for public orgs.
+  @Column({ type: 'varchar', length: 12, nullable: true })
+  join_code: string | null;
+
   @ManyToOne(() => User, { nullable: false })
   @JoinColumn({ name: 'primary_admin_id' })
   primary_admin: User;

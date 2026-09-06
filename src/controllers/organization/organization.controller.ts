@@ -3,8 +3,9 @@ import { Request, Response } from 'express';
 import { CreateOrganization_Operation } from '../../services/organization_management/create_organization';
 import { SearchOrganizations_Operation } from '../../services/organization/search';
 import { GetOrgDetail_Operation } from '../../services/organization/get_detail';
-import { CreateOrgPayload } from '../../services/organization_management/create_organization/types';
+import { CreateOrgPayloadStrict } from '../../services/organization_management/create_organization/types';
 import { JoinOrganization_Operation } from '../../services/organization/join';
+import { VerifyOrgCode_Operation } from '../../services/organization/verify_code';
 import {
   ListMembers_Operation,
   UpdateMemberRole_Operation,
@@ -32,7 +33,7 @@ export async function CreateOrganization_Controller(req: Request, res: Response)
   }
 
   //const parsed = CreateOrganizationSchema.safeParse(req.body);
-  const parsed = CreateOrgPayload.safeParse(req.body)
+  const parsed = CreateOrgPayloadStrict.safeParse(req.body)
   if (!parsed.success) {
     return res.status(400).json({
       success: false,
@@ -126,6 +127,30 @@ export async function JoinOrganization_Controller(req: Request, res: Response) {
       : undefined;
 
   const result = await JoinOrganization_Operation({ orgId, userId, submitted_data, network });
+  if (!result.success) {
+    return res.status(400).json({ success: false, message: result._OPS_MESSAGE });
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: result._OPS_MESSAGE,
+    data: result._OPS_DATA,
+  });
+}
+
+export async function VerifyOrgCode_Controller(req: Request, res: Response) {
+  const network = req.networkContext;
+  const userId = req.user?.id;
+  const { orgId } = req.params;
+
+  if (!network || !userId) {
+    return res.status(401).json({ success: false, message: 'Unauthorized' });
+  }
+  if (!orgId || typeof req.body?.code !== 'string') {
+    return res.status(400).json({ success: false, message: 'Passcode is required.' });
+  }
+
+  const result = await VerifyOrgCode_Operation({ orgId, userId, code: req.body.code, network });
   if (!result.success) {
     return res.status(400).json({ success: false, message: result._OPS_MESSAGE });
   }

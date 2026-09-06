@@ -74,46 +74,27 @@ export async function GetOrgDetail_Operation(params: {
 
   const isMember = !!membership && membership.status === 'active';
 
-  // Public org OR active member → full public-safe detail, plus the
-  // requesting user's own membership so the client can render the right CTA.
-  if (org.visibility === 'public' || isMember) {
-    return await OPS_Success({
-      ...ops_base,
-      status: 'COMPLETED',
-      message: 'Organization detail.',
-      data: {
-        organization: {
-          ...orgBase(org, auth?.custom_fields ?? []),
-          is_member: isMember,
-          membership: membership
-            ? { role: membership.role, status: membership.status }
-            : null,
-        },
-      },
-    });
-  }
-
-  // Private org, non-active-member — enough to know it's real and how to
-  // request access, not its internals.
+  // Every authenticated user gets the full public-safe detail — private orgs
+  // included. The join gate is the org's short passcode (verify-code endpoint),
+  // not a stripped-down read: hiding the summary only produced pages that said
+  // "Organization description coming soon."
   return await OPS_Success({
     ...ops_base,
     status: 'COMPLETED',
-    message: 'Limited detail — private organization.',
+    message: org.visibility === 'private' ? 'Organization detail — passcode required to join.' : 'Organization detail.',
     data: {
       organization: {
-        ...orgBase(org, []),
-        email: null,
-        company_logo: null,
-        website: null,
-        location: null,
-        description: null,
-        established_year: null,
-        is_member: false,
+        ...orgBase(org, auth?.custom_fields ?? []),
+        is_member: isMember,
         membership: membership
           ? { role: membership.role, status: membership.status }
           : null,
-        join_hint:
-          'This organization is private. Request an invite from an admin, or use an invite link if you have one.',
+        ...(org.visibility === 'private'
+          ? {
+              join_hint:
+                'This organization is private. Enter the organization passcode to open the join request.',
+            }
+          : {}),
       },
     },
   });

@@ -37,22 +37,30 @@ export async function ExportElectionResults_Operation(params: {
   ];
   for (const cat of data.categories ?? []) {
     for (const c of cat.candidates ?? []) {
+      let outcome = '';
+      if (cat.tie && c.is_winner) outcome = `TIE — ${ordinal(c.rank)}`;
+      else if (c.tied) outcome = `TIE — ${ordinal(c.rank)}`;
+      else if (c.is_winner) outcome = 'WINNER';
       rows.push(
         [
-          ordinal(c.rank ?? 0),
+          cat.tie && c.is_winner ? `Tie — ${ordinal(c.rank)}` : ordinal(c.rank ?? 0),
           String(c.rank ?? ''),
           cat.category,
           c.fullname,
           String(c.votes),
           String(c.percentage),
-          c.is_winner ? 'WINNER' : '',
+          outcome,
         ]
           .map(csvEscape)
           .join(',')
       );
     }
-    // One clear winner line per category, right under its ranked rows.
-    if (cat.winner) {
+    // One clear result line per category, right under its ranked rows.
+    if (cat.tie) {
+      rows.push(
+        [`Tie — ${cat.category}`, csvEscape((cat.tied_names ?? []).join('; '))].join(',')
+      );
+    } else if (cat.winner) {
       rows.push([`Winner — ${cat.category}`, csvEscape(cat.winner)].join(','));
     }
     rows.push('');
