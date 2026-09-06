@@ -1,7 +1,7 @@
 import { OPS_Error, OPS_Success } from '../../../lib/ops/ops.factory';
 import { NetworkContext } from '../../../lib/ops/ops.types';
 import { Service_Success_Handler, Service_Error_Handler } from '../../../types/Response_handler';
-import { CLOCK, Log } from '../../../utils/Logger';
+import { Log } from '../../../utils/Logger';
 import { verifyOTP } from '../../../utils/otp';
 
 const EVENT = 'OTP_VERIFICATION_HELPER';

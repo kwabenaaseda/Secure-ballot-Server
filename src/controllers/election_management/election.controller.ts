@@ -2,6 +2,13 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { CreateElection_Operation } from '../../services/Election_management/create_election';
 import { AddCandidate_Operation } from '../../services/Election_management/add_candidate';
+import { ListElections_Operation } from '../../services/Election_management/list_elections';
+import { GetElection_Operation } from '../../services/Election_management/get_election';
+import { PublishElection_Operation } from '../../services/Election_management/publish_election';
+import { CloseElection_Operation } from '../../services/Election_management/close_election';
+import { GetElectionResults_Operation } from '../../services/Election_management/get_results';
+import { ReleaseResults_Operation } from '../../services/Election_management/release_results';
+import { ExportElectionResults_Operation } from '../../services/Election_management/export_results';
 
 // ─── SCHEMAS ────────────────────────────────────────────────────────────────
 
@@ -103,6 +110,180 @@ export async function AddCandidate_Controller(req: Request, res: Response) {
   }
 
   return res.status(201).json({
+    success: true,
+    message: result._OPS_MESSAGE,
+    data: result._OPS_DATA,
+  });
+}
+// ─── LIST ELECTIONS (by org) ──────────────────────────────────────────────────
+export async function ListElections_Controller(req: Request, res: Response) {
+  const network = req.networkContext;
+  const userId = req.user?.id;
+  const { orgId } = req.params;
+
+  if (!network || !userId) {
+    return res.status(401).json({ success: false, message: 'Unauthorized' });
+  }
+  if (!orgId) {
+    return res.status(400).json({ success: false, message: 'Invalid Input' });
+  }
+
+  const result = await ListElections_Operation({ orgId, userId, network });
+  if (!result.success) {
+    return res.status(400).json({ success: false, message: result._OPS_MESSAGE });
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: result._OPS_MESSAGE,
+    data: result._OPS_DATA,
+  });
+}
+
+// ─── GET ELECTION DETAIL ──────────────────────────────────────────────────────
+export async function GetElection_Controller(req: Request, res: Response) {
+  const network = req.networkContext;
+  const userId = req.user?.id;
+  const { electionId } = req.params;
+
+  if (!network || !userId) {
+    return res.status(401).json({ success: false, message: 'Unauthorized' });
+  }
+  if (!electionId) {
+    return res.status(400).json({ success: false, message: 'Invalid Input' });
+  }
+
+  const result = await GetElection_Operation({ electionId, userId, network });
+  if (!result.success) {
+    return res.status(400).json({ success: false, message: result._OPS_MESSAGE });
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: result._OPS_MESSAGE,
+    data: result._OPS_DATA,
+  });
+}
+
+// ─── PUBLISH ELECTION ─────────────────────────────────────────────────────────
+export async function PublishElection_Controller(req: Request, res: Response) {
+  const network = req.networkContext;
+  const actorId = req.user?.id;
+  const { electionId } = req.params;
+
+  if (!network || !actorId) {
+    return res.status(401).json({ success: false, message: 'Unauthorized' });
+  }
+  if (!electionId) {
+    return res.status(400).json({ success: false, message: 'Invalid Input' });
+  }
+
+  const result = await PublishElection_Operation({ electionId, actorId, network });
+  if (!result.success) {
+    return res.status(400).json({ success: false, message: result._OPS_MESSAGE });
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: result._OPS_MESSAGE,
+    data: result._OPS_DATA,
+  });
+}
+
+// ─── CLOSE ELECTION ───────────────────────────────────────────────────────────
+export async function CloseElection_Controller(req: Request, res: Response) {
+  const network = req.networkContext;
+  const actorId = req.user?.id;
+  const { electionId } = req.params;
+
+  if (!network || !actorId) {
+    return res.status(401).json({ success: false, message: 'Unauthorized' });
+  }
+  if (!electionId) {
+    return res.status(400).json({ success: false, message: 'Invalid Input' });
+  }
+
+  const result = await CloseElection_Operation({ electionId, actorId, network });
+  if (!result.success) {
+    return res.status(400).json({ success: false, message: result._OPS_MESSAGE });
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: result._OPS_MESSAGE,
+    data: result._OPS_DATA,
+  });
+}
+
+// ─── GET RESULTS ──────────────────────────────────────────────────────────────
+export async function GetElectionResults_Controller(req: Request, res: Response) {
+  const network = req.networkContext;
+  const userId = req.user?.id;
+  const { electionId } = req.params;
+
+  if (!network || !userId) {
+    return res.status(401).json({ success: false, message: 'Unauthorized' });
+  }
+  if (!electionId) {
+    return res.status(400).json({ success: false, message: 'Invalid Input' });
+  }
+
+  const result = await GetElectionResults_Operation({ electionId, userId, network });
+  if (!result.success) {
+    return res.status(400).json({ success: false, message: result._OPS_MESSAGE });
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: result._OPS_MESSAGE,
+    data: result._OPS_DATA,
+  });
+}
+
+// ─── RELEASE RESULTS (publication) ────────────────────────────────────────────
+export async function ReleaseResults_Controller(req: Request, res: Response) {
+  const network = req.networkContext;
+  const actorId = req.user?.id;
+  const { electionId } = req.params;
+
+  if (!network || !actorId) {
+    return res.status(401).json({ success: false, message: 'Unauthorized' });
+  }
+  if (!electionId) {
+    return res.status(400).json({ success: false, message: 'Invalid Input' });
+  }
+
+  const result = await ReleaseResults_Operation({ electionId, actorId, network });
+  if (!result.success) {
+    return res.status(400).json({ success: false, message: result._OPS_MESSAGE });
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: result._OPS_MESSAGE,
+    data: result._OPS_DATA,
+  });
+}
+
+// ─── EXPORT RESULTS (CSV) ─────────────────────────────────────────────────────
+export async function ExportElectionResults_Controller(req: Request, res: Response) {
+  const network = req.networkContext;
+  const userId = req.user?.id;
+  const { electionId } = req.params;
+
+  if (!network || !userId) {
+    return res.status(401).json({ success: false, message: 'Unauthorized' });
+  }
+  if (!electionId) {
+    return res.status(400).json({ success: false, message: 'Invalid Input' });
+  }
+
+  const result = await ExportElectionResults_Operation({ electionId, userId, network });
+  if (!result.success) {
+    return res.status(400).json({ success: false, message: result._OPS_MESSAGE });
+  }
+
+  return res.status(200).json({
     success: true,
     message: result._OPS_MESSAGE,
     data: result._OPS_DATA,

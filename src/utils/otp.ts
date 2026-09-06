@@ -4,7 +4,9 @@ import { AppDataSource } from '../config/database';
 import { OtpCode } from '../entities/OtpCode';
 
 const OTP_LENGTH = 5;
-const OTP_TTL_MS = 5 * 60 * 1000;
+// 10 minutes — matches what the OTP and password-reset email/SMS copy tells
+// users. The server was the outlier at 5 (Tier 2.2 fix).
+const OTP_TTL_MS = 10 * 60 * 1000;
 const OTP_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 function generateCode(length: number, chars: string): string {

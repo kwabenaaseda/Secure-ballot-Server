@@ -1,8 +1,7 @@
 import { NetworkContext } from '../lib/ops/ops.types';
-import bcrypt from 'bcrypt';
 import { Request } from 'express';
 
-export function getNetworkContext(req: Request): NetworkContext {
+export function getNetworkContext(_req: Request): NetworkContext {
   // --- Return context
   return {
     ip_hash: '',
@@ -11,10 +10,4 @@ export function getNetworkContext(req: Request): NetworkContext {
     correlation_id: '',
     session_id: '',
   };
-}
-// Helpers
-
-async function IP_HASH(ip: string) {
-  const salt = 14;
-  return bcrypt.hash(ip, salt);
 }

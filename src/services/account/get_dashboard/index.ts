@@ -9,6 +9,7 @@ import { NetworkContext } from '../../../lib/ops/ops.types';
 import { User } from '../../../entities/User';
 import { VoteRecord } from '../../../entities/Vote_record';
 import { In } from 'typeorm';
+import { effectiveElectionStatus } from '../../Election_management/helpers/election.status';
 
 export async function GetDashboard_Operation(params: { userId: string; network: NetworkContext }) {
   const started_at = Date.now();
@@ -47,9 +48,10 @@ export async function GetDashboard_Operation(params: { userId: string; network: 
       retryable: false,
     });
   }
-  // Left column — orgs the user belongs to (member, not owner)
+  // Left column — orgs the user belongs to. Only ACTIVE memberships count:
+  // pending/deactivated members must not see (or vote in) the org's ballots.
   const memberships = await AppDataSource.getRepository(OrgMembers).find({
-    where: { user: { id: params.userId } },
+    where: { user: { id: params.userId }, status: 'active' },
     relations: ['org'],
   });
 
@@ -101,6 +103,8 @@ export async function GetDashboard_Operation(params: { userId: string; network: 
       org_id: e.org.id,
       org_name: e.org.name,
       status: e.status,
+      visibility: e.visibility,
+      is_public: e.is_public,
       start_at: e.start_at,
       end_at: e.end_at,
       has_voted:
@@ -127,18 +131,16 @@ export async function GetDashboard_Operation(params: { userId: string; network: 
 }
 
 async function El(orgIds: string[]) {
-  /* const COLLECTION: Election[] = []
-     orgIds.forEach(async el =>{
-       
-        let election = await AppDataSource.getRepository(Election).find({
-        where: { org: { id: el }, status: "published" }, // adjust status value to match your Election entity's actual enum
-        relations: ["org"],
-      })
-      COLLECTION.concat(election)
-     })
-     return COLLECTION */
   return await AppDataSource.getRepository(Election).find({
-    where: { org: { id: In(orgIds) }, status: 'published' }, // adjust status value to match your Election entity's actual enum
+    where: { org: { id: In(orgIds) }, status: 'published' },
     relations: ['org'],
-  });
+    order: { end_at: 'ASC' },
+  }).then((rows) =>
+    // Effective status is the single source of truth everywhere else
+    // (list_elections / get_election / cast_vote): a 'published' row past its
+    // end_at is CLOSED even before the lazy finalize persists it. Filtering
+    // here keeps the dashboard consistent with those gates — private- and
+    // public-org members alike see every open election of their orgs.
+    rows.filter((e) => effectiveElectionStatus(e) === 'published')
+  );
 }

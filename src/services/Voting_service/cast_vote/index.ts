@@ -13,7 +13,7 @@ const EVENT = 'VOTE_SUBMIT';
 const SOURCE = 'CastVote_Operation';
 
 export async function CastVote_Operation(
-  payload: CastVotePayload
+  payload: CastVotePayload,
 ): Promise<Service_Success_Handler | Service_Error_Handler> {
   const started_at = Date.now();
 
@@ -35,21 +35,21 @@ export async function CastVote_Operation(
   await queryRunner.startTransaction();
 
   try {
-    const { election_id, candidate_id, voter_id } = payload;
+    const { election_id, selections, voter_id } = payload;
 
-    if (!election_id || !candidate_id || !voter_id) {
+    if (!election_id || !voter_id || !selections?.length) {
       await queryRunner.rollbackTransaction();
       return await OPS_Error({
         ...ops_base,
         status: 'OPERATION_FAILURE',
-        message: 'election_id, candidate_id, and voter_id are required.',
+        message: 'election_id, voter_id, and at least one selection are required.',
         error_code: 'MISSING_REQUIRED_FIELDS',
         error_category: 'VALIDATION',
         retryable: true,
       });
     }
 
-    // ── STEP 1: ELECTION MUST BE OPEN RIGHT NOW ───────────────────────────────
+    // --- STEP 1: ELECTION MUST BE OPEN RIGHT NOW --------------------------------
     const electionRepo = queryRunner.manager.getRepository(Election);
     const election = await electionRepo.findOne({
       where: { id: election_id },
@@ -68,10 +68,10 @@ export async function CastVote_Operation(
       });
     }
 
-    // ── STEP 1.5: ORG MUST STILL BE ACTIVE — a suspension after an election
-    // was already published must not leave a live, votable election behind.
-    // This is what actually makes "admin can stop them from causing
-    // problems" true at the moment it matters most. ──
+    // --- STEP 1.5: ORG MUST STILL BE ACTIVE ------------------------------------
+    // A suspension after an election was already published must not leave a live,
+    // votable election behind. This is what makes "admin can stop them from
+    // causing problems" true at the moment it matters most.
     if (election.org.status !== 'active') {
       await queryRunner.rollbackTransaction();
       return await OPS_Error({
@@ -97,8 +97,8 @@ export async function CastVote_Operation(
       });
     }
 
-    // ── STEP 2: VOTER MUST BE AN ACTIVE MEMBER OF THE ELECTION'S ORG ─────────
-    // Skipped entirely for is_public elections — anyone can vote.
+    // --- STEP 2: VOTER MUST BE AN ACTIVE MEMBER OF THE ELECTION'S ORG -------------
+    // Skipped entirely for is_public elections -- anyone can vote.
     if (!election.is_public) {
       const memberRepo = queryRunner.manager.getRepository(OrgMembers);
       const membership = await memberRepo.findOne({
@@ -118,26 +118,38 @@ export async function CastVote_Operation(
       }
     }
 
-    // ── STEP 3: CANDIDATE MUST BELONG TO THIS ELECTION ────────────────────────
+    // --- STEP 3: EVERY SELECTED CANDIDATE MUST BELONG TO THIS ELECTION ----------
+    // and match the category the voter declared. Fetching all of the election's
+    // candidates once validates the whole ballot server-side (handles both
+    // single- and multi-category ballots) and blocks a voter from pairing a
+    // candidate with the wrong category.
     const candidateRepo = queryRunner.manager.getRepository(Candidate);
-    const candidate = await candidateRepo.findOne({
-      where: { id: candidate_id },
-      relations: ['election'],
+    const candidates = await candidateRepo.find({
+      where: { election: { id: election_id } },
     });
 
-    if (!candidate || candidate.election.id !== election_id) {
-      await queryRunner.rollbackTransaction();
-      return await OPS_Error({
-        ...ops_base,
-        status: 'OPERATION_FAILURE',
-        message: 'Candidate does not belong to this election.',
-        error_code: 'INVALID_CANDIDATE',
-        error_category: 'VALIDATION',
-        retryable: false,
-      });
+    const chosen: Candidate[] = [];
+    for (const sel of selections) {
+      const cand = candidates.find((c) => c.id === sel.candidate_id);
+      if (!cand || cand.category !== sel.category) {
+        await queryRunner.rollbackTransaction();
+        return await OPS_Error({
+          ...ops_base,
+          status: 'OPERATION_FAILURE',
+          message: `Candidate "${sel.candidate_id}" is not valid for category "${sel.category}".`,
+          error_code: 'INVALID_CANDIDATE',
+          error_category: 'VALIDATION',
+          retryable: false,
+        });
+      }
+      chosen.push(cand);
     }
 
-    // ── STEP 4: RECORD PARTICIPATION ───────────────────────────────────────────
+    // --- STEP 4: RECORD PARTICIPATION --------------------------------------------
+    // One VoteRecord per (user, election). The @Unique(['user','election'])
+    // constraint turns any second ballot into a 23505 -> ALREADY_VOTED below,
+    // so the entire multi-category selection is treated as a single,
+    // non-replaceable participation event.
     const voteRecordRepo = queryRunner.manager.getRepository(VoteRecord);
     const record = voteRecordRepo.create({
       user: { id: voter_id } as any,
@@ -145,16 +157,21 @@ export async function CastVote_Operation(
     });
     await queryRunner.manager.save(record);
 
-    // ── STEP 5: INCREMENT TALLY — ATOMIC, NO READ-MODIFY-WRITE RACE ───────────
-    await queryRunner.manager
-      .createQueryBuilder()
-      .update(VoteTally)
-      .set({ vote_count: () => 'vote_count + 1' })
-      .where('candidate_id = :candidate_id AND election_id = :election_id', {
-        candidate_id,
-        election_id,
-      })
-      .execute();
+    // --- STEP 5: INCREMENT EACH SELECTED CANDIDATE'S TALLY -----------------------
+    // Tally rows are pre-seeded at 0 by AddCandidate, so a plain atomic UPDATE
+    // is safe and race-free for any number of selections (single- or
+    // multi-category ballots).
+    for (const cand of chosen) {
+      await queryRunner.manager
+        .createQueryBuilder()
+        .update(VoteTally)
+        .set({ vote_count: () => 'vote_count + 1' })
+        .where('candidate_id = :candidate_id AND election_id = :election_id', {
+          candidate_id: cand.id,
+          election_id,
+        })
+        .execute();
+    }
 
     await queryRunner.commitTransaction();
 
@@ -186,7 +203,7 @@ export async function CastVote_Operation(
       status: 'SYSTEM_FAILURE',
       message: `An unexpected error occurred during ${EVENT}. `,
       error_code: 'INTERNAL_ERROR',
-      error_category: 'SYSTEM',
+          error_category: 'SYSTEM',
       retryable: true,
       retry_after_ms: 5000,
       stack_ref: `${EVENT}_${started_at}`,

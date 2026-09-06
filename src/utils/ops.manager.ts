@@ -1,4 +1,20 @@
 // This operation helps determine whether a client gets to execute a request or not.
+//
+// ─── AUTHORIZATION MODEL — TWO DELIBERATE LAYERS (Tier 1.1) ──────────────────
+// This file is the authoritative ROLE-TIER gate (PDP/PEP, default-deny,
+// fail-closed). Election/org/vote services ALSO enforce ROW-LEVEL checks
+// inline (does *this* membership row belong to *this* org, is it active, is
+// the election in the required state, is the org not suspended). That is a
+// deliberate split, not an inconsistency:
+//
+//   * The matrix expresses what a ROLE TIER may do platform-wide.
+//   * Inline service checks express ownership + state that only make sense
+//     against a specific database row and cannot be expressed as a static
+//     role->resource->action triple.
+//
+// Rule of thumb for every service: check the tier here when a coarse tier
+// suffices; always fail closed on the row-level facts; NEVER trust the JWT's
+// range claim for authorization — the database is the source of truth.
 import { User } from '../entities/User';
 import { OrgMembers } from '../entities/OrgMembers';
 import { Organization } from '../entities/Organization';

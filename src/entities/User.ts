@@ -17,6 +17,10 @@ export class User {
   @Column({ type: 'varchar' })
   password_hash: string;
 
+  // Tier 3 — DESIGNED, NOT YET IMPLEMENTED: no endpoint currently writes or
+  // checks this column. The client-side useBiometricEnrollment hook is a
+  // per-device localStorage SIMULATION (see its own header). Real enrollment
+  // will be a WebAuthn flow writing a credential hash here.
   @Column({ type: 'varchar', nullable: true })
   biometric_hash: string; // SHA-256 only. Raw biometric NEVER stored.
 

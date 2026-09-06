@@ -111,13 +111,11 @@ export async function buildIntegrityProof(
 
   // ── Chain: bind this entry to the previous one ─────────────────────────────
   let prev_chain_hash: string;
-  let prev_sequence: number;
 
   if (queryRunner) {
     // Inside a transaction — use the advisory lock path
     const tail = await getChainTailInTransaction(queryRunner);
     prev_chain_hash = tail.hash;
-    prev_sequence = tail.sequence;
   } else {
     // Fallback: called outside a transaction (e.g. testing, dry-run).
     // No lock — not safe for production concurrent writes.
@@ -132,7 +130,6 @@ export async function buildIntegrityProof(
       .getOne();
 
     prev_chain_hash = latest?.chain_hash ?? GENESIS_HASH;
-    prev_sequence = latest?.sequence_number ?? 0;
   }
 
   const chain_hash = createHash('sha256')

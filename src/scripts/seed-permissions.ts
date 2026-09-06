@@ -65,6 +65,12 @@ const MATRIX: { role: string; resource: string; action: string; effect?: 'ALLOW'
     action: 'approve',
     effect: 'ALLOW',
   },
+  // Tier 1.2 — organization creators are minted with role='admin', which maps
+  // to ORG_ACCESS[PART] (green status). They must be able to delete their OWN
+  // organization; owners/moderators get the same via ORG_ACCESS[FULL] below.
+  // DeleteOrganization_Operation enforces the row-level side (active admin of
+  // THAT org) — this row grants the tier.
+  { role: 'ORG_ACCESS[PART]', resource: 'organization', action: 'delete', effect: 'ALLOW' },
 
   // ── ORG_ACCESS[FULL] ── owner/moderator tier — everything ORG_ACCESS[PART]
   // has, written out explicitly (no inheritance in the lookup), PLUS owner-only actions.

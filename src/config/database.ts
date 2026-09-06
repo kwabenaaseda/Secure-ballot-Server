@@ -9,10 +9,8 @@ import { Election } from '../entities/Election.ts';
 import { AuditLog } from '../entities/audit_log.ts';
 import { ColdStore } from '../entities/cold_store.ts';
 import { OrganizationAuth } from '../entities/Org_auth.ts';
-import { OrgStructure } from '../entities/Org_structure.ts';
 import { Organization } from '../entities/Organization.ts';
 import { OrgMemberProfiles } from '../entities/OrgMember_profile.ts';
-import { OrgMemberProfileEdits } from '../entities/OrgMember_profileEdit.ts';
 import { OrgMembers } from '../entities/OrgMembers.ts';
 import { RolePermission } from '../entities/RolePermission.ts';
 import { SystemAdmin } from '../entities/SystemAdmin.ts';
@@ -48,10 +46,8 @@ export const AppDataSource = new DataSource({
     AuditLog,
     ColdStore,
     OrganizationAuth,
-    OrgStructure,
     Organization,
     OrgMemberProfiles,
-    OrgMemberProfileEdits,
     OrgMembers,
     RolePermission,
     SystemAdmin,

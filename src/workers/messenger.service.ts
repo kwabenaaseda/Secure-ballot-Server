@@ -71,7 +71,7 @@ export default {
 //           can send for real. Falls back to mock log until then.
 
 import { Vonage } from '@vonage/server-sdk';
-import { Channels, WhatsAppText } from '@vonage/messages';
+import { WhatsAppText } from '@vonage/messages';
 import { ENV } from './env_validator';
 
 // ── SMS CLIENT (basic auth: api key + secret) ──────────

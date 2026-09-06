@@ -8,7 +8,7 @@ import Voting_routes from './voting/voting.routes';
 import Account_Settings_Routes from './account/account.routes';
 import Account_Dashboardd_Routes from './account/account_dashboard.routes';
 
-const ROUTES = express();
+const ROUTES = express.Router();
 
 // ------------------- AUTHENTICATION
 ROUTES.use('/auth/user', Auth_user);

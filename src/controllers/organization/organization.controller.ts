@@ -4,6 +4,17 @@ import { CreateOrganization_Operation } from '../../services/organization_manage
 import { SearchOrganizations_Operation } from '../../services/organization/search';
 import { GetOrgDetail_Operation } from '../../services/organization/get_detail';
 import { CreateOrgPayload } from '../../services/organization_management/create_organization/types';
+import { JoinOrganization_Operation } from '../../services/organization/join';
+import {
+  ListMembers_Operation,
+  UpdateMemberRole_Operation,
+  UpdateMemberStatus_Operation,
+} from '../../services/organization_management/member_management';
+import { DeleteOrganization_Operation } from '../../services/organization_management/delete_organization';
+import {
+  ListPendingJoinRequests_Operation,
+  DecideJoinRequest_Operation,
+} from '../../services/organization_management/approve_join';
 
 
 /* const CreateOrganizationSchema = z.object({
@@ -91,6 +102,213 @@ export async function Get_Org_Detail(req: Request, res: Response) {
   }
 
   return res.status(201).json({
+    success: true,
+    message: result._OPS_MESSAGE,
+    data: result._OPS_DATA,
+  });
+}
+// ─── JOIN ORGANIZATION ─────────────────────────────────────────────────────────
+export async function JoinOrganization_Controller(req: Request, res: Response) {
+  const network = req.networkContext;
+  const userId = req.user?.id;
+  const { orgId } = req.params;
+
+  if (!network || !userId) {
+    return res.status(401).json({ success: false, message: 'Unauthorized' });
+  }
+  if (!orgId) {
+    return res.status(400).json({ success: false, message: 'Invalid Input' });
+  }
+
+  const submitted_data =
+    req.body && typeof req.body.submitted_data === 'object' && req.body.submitted_data !== null
+      ? (req.body.submitted_data as Record<string, any>)
+      : undefined;
+
+  const result = await JoinOrganization_Operation({ orgId, userId, submitted_data, network });
+  if (!result.success) {
+    return res.status(400).json({ success: false, message: result._OPS_MESSAGE });
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: result._OPS_MESSAGE,
+    data: result._OPS_DATA,
+  });
+}
+
+// ─── ORG MEMBER MANAGEMENT ─────────────────────────────────────────────────────
+export async function ListOrgMembers_Controller(req: Request, res: Response) {
+  const network = req.networkContext;
+  const actorId = req.user?.id;
+  const { orgId } = req.params;
+
+  if (!network || !actorId) {
+    return res.status(401).json({ success: false, message: 'Unauthorized' });
+  }
+  if (!orgId) {
+    return res.status(400).json({ success: false, message: 'Invalid Input' });
+  }
+
+  const result = await ListMembers_Operation({ orgId, actorId, network });
+  if (!result.success) {
+    return res.status(400).json({ success: false, message: result._OPS_MESSAGE });
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: result._OPS_MESSAGE,
+    data: result._OPS_DATA,
+  });
+}
+
+export async function UpdateMemberRole_Controller(req: Request, res: Response) {
+  const network = req.networkContext;
+  const actorId = req.user?.id;
+  const { orgId, memberId } = req.params;
+  const { role } = req.body ?? {};
+
+  if (!network || !actorId) {
+    return res.status(401).json({ success: false, message: 'Unauthorized' });
+  }
+  if (!orgId || !memberId) {
+    return res.status(400).json({ success: false, message: 'Invalid Input' });
+  }
+  if (!['voter', 'moderator', 'admin'].includes(role)) {
+    return res.status(400).json({ success: false, message: 'Invalid role.' });
+  }
+
+  const result = await UpdateMemberRole_Operation({ orgId, memberId, actorId, role, network });
+  if (!result.success) {
+    return res.status(400).json({ success: false, message: result._OPS_MESSAGE });
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: result._OPS_MESSAGE,
+    data: result._OPS_DATA,
+  });
+}
+
+export async function UpdateMemberStatus_Controller(req: Request, res: Response) {
+  const network = req.networkContext;
+  const actorId = req.user?.id;
+  const { orgId, memberId } = req.params;
+  const { status } = req.body ?? {};
+
+  if (!network || !actorId) {
+    return res.status(401).json({ success: false, message: 'Unauthorized' });
+  }
+  if (!orgId || !memberId) {
+    return res.status(400).json({ success: false, message: 'Invalid Input' });
+  }
+  if (!['active', 'deactivated'].includes(status)) {
+    return res.status(400).json({ success: false, message: 'Invalid status.' });
+  }
+
+  const result = await UpdateMemberStatus_Operation({ orgId, memberId, actorId, status, network });
+  if (!result.success) {
+    return res.status(400).json({ success: false, message: result._OPS_MESSAGE });
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: result._OPS_MESSAGE,
+    data: result._OPS_DATA,
+  });
+}
+
+// ─── JOIN REQUESTS ─────────────────────────────────────────────────────────────
+export async function ListPendingJoinRequests_Controller(req: Request, res: Response) {
+  const network = req.networkContext;
+  const actorId = req.user?.id;
+  const { orgId } = req.params;
+
+  if (!network || !actorId) {
+    return res.status(401).json({ success: false, message: 'Unauthorized' });
+  }
+  if (!orgId) {
+    return res.status(400).json({ success: false, message: 'Invalid Input' });
+  }
+
+  const result = await ListPendingJoinRequests_Operation({ orgId, actorId, network });
+  if (!result.success) {
+    return res.status(400).json({ success: false, message: result._OPS_MESSAGE });
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: result._OPS_MESSAGE,
+    data: result._OPS_DATA,
+  });
+}
+
+export async function ApproveJoinRequest_Controller(req: Request, res: Response) {
+  const network = req.networkContext;
+  const actorId = req.user?.id;
+  const { orgId, memberId } = req.params;
+
+  if (!network || !actorId) {
+    return res.status(401).json({ success: false, message: 'Unauthorized' });
+  }
+  if (!orgId || !memberId) {
+    return res.status(400).json({ success: false, message: 'Invalid Input' });
+  }
+
+  const result = await DecideJoinRequest_Operation({ orgId, memberId, actorId, decision: 'approve', network });
+  if (!result.success) {
+    return res.status(400).json({ success: false, message: result._OPS_MESSAGE });
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: result._OPS_MESSAGE,
+    data: result._OPS_DATA,
+  });
+}
+
+export async function DenyJoinRequest_Controller(req: Request, res: Response) {
+  const network = req.networkContext;
+  const actorId = req.user?.id;
+  const { orgId, memberId } = req.params;
+
+  if (!network || !actorId) {
+    return res.status(401).json({ success: false, message: 'Unauthorized' });
+  }
+  if (!orgId || !memberId) {
+    return res.status(400).json({ success: false, message: 'Invalid Input' });
+  }
+
+  const result = await DecideJoinRequest_Operation({ orgId, memberId, actorId, decision: 'deny', network });
+  if (!result.success) {
+    return res.status(400).json({ success: false, message: result._OPS_MESSAGE });
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: result._OPS_MESSAGE,
+    data: result._OPS_DATA,
+  });
+}
+
+export async function DeleteOrganization_Controller(req: Request, res: Response) {
+  const network = req.networkContext;
+  const actorId = req.user?.id;
+  const { orgId } = req.params;
+
+  if (!network || !actorId) {
+    return res.status(401).json({ success: false, message: 'Unauthorized' });
+  }
+  if (!orgId) {
+    return res.status(400).json({ success: false, message: 'Invalid Input' });
+  }
+
+  const result = await DeleteOrganization_Operation({ orgId, actorId, network });
+  if (!result.success) {
+    return res.status(400).json({ success: false, message: result._OPS_MESSAGE });
+  }
+
+  return res.status(200).json({
     success: true,
     message: result._OPS_MESSAGE,
     data: result._OPS_DATA,

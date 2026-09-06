@@ -1,5 +1,13 @@
 import { THREAT_SIGNAL } from '../../../types/Response_handler';
 
+// ─── TIER 3 STATUS: PARTIALLY WIRED ──────────────────────────────────────────
+// The scoring engine is real and weighted. Currently ONE real signal is
+// supplied: invalid-password attempts during login (CREDENTIAL_ANOMALY).
+// Designed-but-not-yet-sourced: rate-limiter events (would pair with
+// express-rate-limit — see middleware/rateLimit.ts), device/network mismatch,
+// and concurrent-session detection. Every unsupplied signal resolves to NONE
+// and contributes 0, so an empty signal list is a valid, expected state.
+
 // ─── SIGNAL WEIGHTS ───────────────────────────────────────────────────────────
 // Each signal contributes a base score. Scores are additive and capped at 100.
 // Weights are tuned toward voting-context threat severity.

@@ -2,9 +2,14 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { CastVote_Operation } from '../../services/Voting_service/cast_vote';
 
+const VoteSelectionSchema = z.object({
+  category: z.string().min(1),
+  candidate_id: z.string().uuid(),
+});
+
 const CastVoteSchema = z.object({
   election_id: z.string().uuid(),
-  candidate_id: z.string().uuid(),
+  selections: z.array(VoteSelectionSchema).min(1),
 });
 
 export async function CastVote_Controller(req: Request, res: Response) {

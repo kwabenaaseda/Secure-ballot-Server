@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { VerifyToken } from '../utils/auth';
 import { Log } from '../utils/Logger';
-import { success } from 'zod/v4';
+import { AppDataSource } from '../config/database';
+import { TokenBlacklist } from '../entities/token_blacklist';
 
 // Extend Express Request to carry user data
 declare global {
@@ -17,6 +18,8 @@ declare global {
           token_verification: string;
           token_user_status: string;
           token_data?: string;
+          token_jti?: string; // JWT ID — present on tokens minted after revocation support
+          token_exp?: number; // unix seconds — used to blacklist until natural expiry
         };
       };
     }
@@ -48,6 +51,23 @@ export async function AuthMiddleware(req: Request, res: Response, next: NextFunc
       });
     }
 
+    // ── STEP 2.6: REVOCATION CHECK ─────────────────────────────
+    // Logout inserts the token's jti into token_blacklist; a revoked token is
+    // rejected here for the rest of its natural lifetime. Tokens minted before
+    // revocation support carry no jti and pass (documented backward compat).
+    // One indexed primary-key lookup per request.
+    if (decoded.jti) {
+      const revoked = await AppDataSource.getRepository(TokenBlacklist).findOneBy({
+        jti: decoded.jti,
+      });
+      if (revoked) {
+        return res.status(401).json({
+          success: false,
+          message: 'Session revoked. Please sign in again.',
+        });
+      }
+    }
+
     // ── STEP 3: ATTACH USER TO REQUEST ─────────────────
     req.user = {
       id: decoded.sub,
@@ -59,10 +79,12 @@ export async function AuthMiddleware(req: Request, res: Response, next: NextFunc
         token_verification: decoded.verification,
         token_user_status: decoded.user_status,
         token_data: decoded.data ? decoded.data : false,
+        token_jti: decoded.jti ?? undefined,
+        token_exp: typeof decoded.exp === 'number' ? decoded.exp : undefined,
       },
     };
 
-    next();
+    return next();
   } catch (error) {
     Log.warn('AuthMiddleware', String(error), 'AUTH');
     return res.status(401).json({

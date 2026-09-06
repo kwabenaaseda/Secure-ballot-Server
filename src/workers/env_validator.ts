@@ -31,13 +31,13 @@ const REQUIRED_ENV_VARS = [
   'VONAGE_WHATSAPP_NUMBER',
   'VONAGE_MESSAGES_API_HOST',
   'BREVO_API_KEY',
-  'MAIL_FROM',
   'MAIL_FROM_NAME',
   'BREVO_URL',
 
-  // SMS (comment out until Arkesel is ready)
-  'ARKESEL_API_KEY',
-  'ARKESEL_SENDER_ID',
+  // SMS (commented-out Arkesel provider — no longer required; do not re-add
+  // to this list unless the provider path below is actually re-enabled)
+  // 'ARKESEL_API_KEY',
+  // 'ARKESEL_SENDER_ID',
 
   // Admin credentials
   'SEED_ADMIN_EMAIL',

@@ -4,7 +4,6 @@ import { OPS_Error, OPS_Success } from '../../../lib/ops/ops.factory';
 import { NetworkContext } from '../../../lib/ops/ops.types';
 import { Service_Error_Handler, Service_Success_Handler } from '../../../types/Response_handler';
 import { Log } from '../../../utils/Logger';
-import Operations_Manager, { ACTION, LOCATION, RESOURCE } from '../../../utils/ops.manager';
 import { generateOTP } from '../../../utils/otp';
 import { sendOTPEmail } from '../../../workers/email.service';
 import { sendOTPSMS } from '../../../workers/messenger.service';

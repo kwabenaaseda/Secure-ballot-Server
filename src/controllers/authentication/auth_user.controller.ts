@@ -6,8 +6,17 @@ import { Login_Operation } from '../../services/auth_mod_sys_users/login';
 import { Forgot_Password } from '../../services/auth_mod_sys_users/account_recovery/forgot_password';
 import { ResetSchema } from '../../services/auth_mod_sys_users/account_recovery/forgot_password/types';
 import { VerifyAccount_Operation } from '../../services/auth_mod_sys_users/otp_verify';
-// controllers/authentication/auth_user.controller.ts — add
 import { Resend_OTP } from '../../services/auth_mod_sys_users/resendOTP';
+import { Verify_Reset_Password_OTP } from '../../services/auth_mod_sys_users/account_recovery/reset_verify_otp';
+import { ResetPassword_Operation } from '../../services/auth_mod_sys_users/account_recovery/reset_password';
+import { RefreshTokens_Operation } from '../../services/auth/refresh';
+import { z } from 'zod';
+
+// The OTP was already proven by verify-recovery-otp, whose 5-minute Bearer
+// token IS the step-up proof here — so the body carries only the new password.
+const ResetPasswordSchema = z.object({
+  new_password: z.string().min(8),
+});
 
 export async function ResendOTP_Controller(req: Request, res: Response) {
   const network = req.networkContext;
@@ -161,5 +170,103 @@ export async function Forgot_Password_Controller(req: Request, res: Response) {
   return res.status(200).json({
     success: true,
     message: result._OPS_MESSAGE,
+    data: result._OPS_DATA, // { user_id } — the client needs it for verify-recovery-otp
+  });
+}
+
+export async function VerifyRecoveryOTP_Controller(req: Request, res: Response) {
+  const { otp, userId } = req.body;
+  const network = req.networkContext;
+
+  if (!network) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid request.',
+    });
+  }
+
+  if (!otp || !userId) {
+    return res.status(400).json({
+      success: false,
+      message: 'OTP and userId are required.',
+    });
+  }
+
+  const result = await Verify_Reset_Password_OTP({ userId, otp, network });
+
+  if (!result.success) {
+    return res.status(400).json({
+      success: false,
+      message: result._OPS_MESSAGE,
+    });
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: result._OPS_MESSAGE,
+    data: result._OPS_DATA,
+  });
+}
+
+export async function ResetPassword_Controller(req: Request, res: Response) {
+  const parsed = ResetPasswordSchema.safeParse(req.body);
+  const network = req.networkContext;
+  const userId = req.user?.id;
+
+  if (!network || !userId) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid request.',
+    });
+  }
+
+  if (!parsed.success) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid input',
+      errors: parsed.error.flatten().fieldErrors,
+    });
+  }
+
+  const result = await ResetPassword_Operation({
+    userId,
+    new_password: parsed.data.new_password,
+    network,
+  });
+
+  if (!result.success) {
+    return res.status(400).json({
+      success: false,
+      message: result._OPS_MESSAGE,
+    });
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: result._OPS_MESSAGE,
+  });
+}
+
+export async function RefreshTokens_Controller(req: Request, res: Response) {
+  const network = req.networkContext;
+  const refresh_token = req.body?.refresh_token;
+
+  if (!network) {
+    return res.status(400).json({ success: false, message: 'Invalid request.' });
+  }
+  if (!refresh_token || typeof refresh_token !== 'string') {
+    return res.status(400).json({ success: false, message: 'refresh_token is required.' });
+  }
+
+  const result = await RefreshTokens_Operation({ refresh_token, network });
+
+  if (!result.success) {
+    return res.status(401).json({ success: false, message: result._OPS_MESSAGE });
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: result._OPS_MESSAGE,
+    data: result._OPS_DATA,
   });
 }

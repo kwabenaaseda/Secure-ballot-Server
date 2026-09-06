@@ -6,9 +6,11 @@ export class TokenBlacklist {
   @PrimaryColumn({ type: 'varchar' })
   jti: string; // JWT ID (unique per token)
 
-  @ManyToOne(() => User, { nullable: false })
+  // Nullable: SYSTEM_ADMIN tokens have no users-table row to reference.
+  // (Altered via migration MakeTokenBlacklistUserOptional.)
+  @ManyToOne(() => User, { nullable: true })
   @JoinColumn({ name: 'user_id' })
-  user: User;
+  user: User | null;
 
   @Column({ type: 'timestamptz' })
   blacklisted_at: Date;

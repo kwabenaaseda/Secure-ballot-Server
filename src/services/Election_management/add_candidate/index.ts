@@ -110,7 +110,11 @@ export async function AddCandidate_Operation(
     candidate.summary = payload.summary ?? null;
     candidate.manifesto = payload.manifesto ?? null;
     candidate.nationality = payload.nationality ?? null;
-    candidate.vetting_status = 'pending';
+    // The org admin/moderator adding the candidate IS the vetting authority
+    // for the org, so admin-added candidates are approved on entry. (There is
+    // deliberately no separate candidate-approval workflow — leaving this as
+    // 'pending' would hide every candidate from voters in get_election.)
+    candidate.vetting_status = 'approved';
     const savedCandidate = await queryRunner.manager.save(candidate);
 
     // ── INITIALIZE VOTE TALLY ROW AT ZERO ─────────────────────────────────────

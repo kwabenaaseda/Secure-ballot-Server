@@ -90,7 +90,7 @@ export async function NetworkContextMiddleware(req: Request, res: Response, next
       correlation_id: _correlationID,
       session_id: _session,
     };
-    next();
+    return next();
   } catch (error) {
     Log.warn(NetworkContextMiddleware.name, String(error), 'NETWORK_CONTEXT');
     return res.status(401).json({

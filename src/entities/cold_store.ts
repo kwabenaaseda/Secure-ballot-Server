@@ -1,6 +1,11 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { Election } from './Election';
 
+// ─── TIER 3 — DESIGNED, NOT YET IMPLEMENTED ──────────────────────────────────
+// Intended as the permanent archive written when results are RELEASED
+// (winner_per_category + full_results + is_final). No service writes to it
+// today; release_results only stamps the election row. Natural wiring point:
+// ReleaseResults_Operation, immediately after commit.
 @Entity('cold_store')
 export class ColdStore {
   @PrimaryGeneratedColumn('uuid')

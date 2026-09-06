@@ -2,6 +2,7 @@
 
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
+import { randomUUID } from 'node:crypto';
 import { ENV } from '../workers/env_validator';
 import { Log } from './Logger';
 import { auth_generate_token_payload } from './types';
@@ -71,6 +72,9 @@ export async function GenerateToken({
 
     const options = {
       expiresIn: EXPIRY,
+      // Every access token carries a unique JWT ID so it can be revoked via
+      // TokenBlacklist on logout (see AuthMiddleware + logout service).
+      jwtid: randomUUID(),
     } as jwt.SignOptions;
 
     // use an object payload and ensure the secret is treated as jwt.Secret
@@ -109,6 +113,9 @@ export async function VerifyToken(token: string) {
 export async function Generate_Refresh_Token({ id }: { id: string }) {
   const options = {
     expiresIn: REFRESH_TOKEN_EXPIRY,
+    // Refresh tokens are rotated (old jti blacklisted on refresh) and
+    // revocable, so they need their own JWT ID too.
+    jwtid: randomUUID(),
   } as jwt.SignOptions;
 
   // use an object payload and ensure the secret is treated as jwt.Secret

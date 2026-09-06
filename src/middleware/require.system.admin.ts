@@ -12,7 +12,7 @@ export function RequireSystemAdmin(req: Request, res: Response, next: NextFuncti
       message: 'Forbidden. System admin access required.',
     });
   }
-  next();
+  return next();
 }
 
 // Extra tier on top: only super_admin can onboard other admins.
@@ -28,5 +28,5 @@ export function RequireSuperAdmin(req: Request, res: Response, next: NextFunctio
       message: 'Forbidden. Super admin access required.',
     });
   }
-  next();
+  return next();
 }

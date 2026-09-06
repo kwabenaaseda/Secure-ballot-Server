@@ -108,6 +108,9 @@ export async function Forgot_Password(
       actor_type: 'VOTER',
       status: 'COMPLETED',
       message: 'Signup successful. OTP sent to email and phone.',
+      // The client cannot guess its own UUID — it needs this to call
+      // /auth/user/verify-recovery-otp, which keys on userId.
+      data: { user_id: user.id },
     });
   } catch (error) {
     Log.debug(SOURCE, String(error), EVENT);

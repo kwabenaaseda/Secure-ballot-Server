@@ -4,6 +4,7 @@ import { AppDataSource } from '../../../../config/database';
 import { Login_Operation } from '../index';
 import { User } from '../../../../entities/User';
 import { Signup_Operation } from '../../signup';
+import type { NetworkContext } from '../../../../lib/ops/ops.types';
 
 // ─── SETUP ───────────────────────────────────────────
 beforeAll(async () => {
@@ -25,8 +26,22 @@ const TEST_USER = {
   occupation: 'Engineer',
 };
 
+// ─── MOCK NETWORK CONTEXT ──────────────────────────────
+// Operations require a NetworkContext; tests provide a static one.
+const TEST_NETWORK: NetworkContext = {
+  ip_hash: 'test_ip_hash',
+  device_fingerprint_hash: 'test_device_fingerprint',
+  user_agent_class: 'BROWSER',
+  correlation_id: 'test_correlation_id',
+  session_id: 'test_session_id',
+};
+
+async function login(identifier: string, password: string) {
+  return Login_Operation({ identifier, password, network: TEST_NETWORK });
+}
+
 beforeEach(async () => {
-  await Signup_Operation(TEST_USER);
+  await Signup_Operation({ ...TEST_USER, network: TEST_NETWORK });
 });
 
 afterEach(async () => {
@@ -40,28 +55,19 @@ afterEach(async () => {
 describe('Login_Operation', () => {
   // ── HAPPY PATH ──────────────────────────────────────
   it('logs in successfully with email', async () => {
-    const result = await Login_Operation({
-      identifier: TEST_USER.email,
-      password: TEST_USER.password,
-    });
+    const result = await login(TEST_USER.email, TEST_USER.password);
     expect(result.success).toBe(true);
     expect(result._OPS_MESSAGE).toBe('LOGIN SUCCESSFUL');
   });
 
   it('logs in successfully with username', async () => {
-    const result = await Login_Operation({
-      identifier: TEST_USER.username,
-      password: TEST_USER.password,
-    });
+    const result = await login(TEST_USER.username, TEST_USER.password);
     expect(result.success).toBe(true);
     expect(result._OPS_MESSAGE).toBe('LOGIN SUCCESSFUL');
   });
 
   it('returns a valid JWT token on success', async () => {
-    const result = await Login_Operation({
-      identifier: TEST_USER.email,
-      password: TEST_USER.password,
-    });
+    const result = await login(TEST_USER.email, TEST_USER.password);
     expect(result.success).toBe(true);
     if (result.success) {
       const data = result._OPS_DATA as any;
@@ -71,10 +77,7 @@ describe('Login_Operation', () => {
   });
 
   it('returns a refresh token on success', async () => {
-    const result = await Login_Operation({
-      identifier: TEST_USER.email,
-      password: TEST_USER.password,
-    });
+    const result = await login(TEST_USER.email, TEST_USER.password);
     expect(result.success).toBe(true);
     if (result.success) {
       const data = result._OPS_DATA as any;
@@ -84,10 +87,7 @@ describe('Login_Operation', () => {
   });
 
   it('returns user data on success', async () => {
-    const result = await Login_Operation({
-      identifier: TEST_USER.email,
-      password: TEST_USER.password,
-    });
+    const result = await login(TEST_USER.email, TEST_USER.password);
     expect(result.success).toBe(true);
     if (result.success) {
       const data = result._OPS_DATA as any;
@@ -99,50 +99,32 @@ describe('Login_Operation', () => {
 
   // ── FAILURE CASES ────────────────────────────────────
   it('rejects wrong password', async () => {
-    const result = await Login_Operation({
-      identifier: TEST_USER.email,
-      password: 'wrongpassword',
-    });
+    const result = await login(TEST_USER.email, 'wrongpassword');
     expect(result.success).toBe(false);
     expect(result._OPS_MESSAGE).toBe('Invalid credentials.');
   });
 
   it('rejects non-existent user', async () => {
-    const result = await Login_Operation({
-      identifier: 'ghost@nowhere.com',
-      password: 'somepassword',
-    });
+    const result = await login('ghost@nowhere.com', 'somepassword');
     expect(result.success).toBe(false);
     expect(result._OPS_MESSAGE).toBe('Invalid credentials.');
   });
 
   it('returns same error for wrong password and missing user', async () => {
-    const wrong_user = await Login_Operation({
-      identifier: 'ghost@nowhere.com',
-      password: 'somepassword',
-    });
-    const wrong_pass = await Login_Operation({
-      identifier: TEST_USER.email,
-      password: 'wrongpassword',
-    });
+    const wrong_user = await login('ghost@nowhere.com', 'somepassword');
+    const wrong_pass = await login(TEST_USER.email, 'wrongpassword');
     // Both should return identical message (credential enumeration prevention)
     expect(wrong_user._OPS_MESSAGE).toBe(wrong_pass._OPS_MESSAGE);
   });
 
   it('rejects empty identifier and password', async () => {
-    const result = await Login_Operation({
-      identifier: '',
-      password: '',
-    });
+    const result = await login('', '');
     expect(result.success).toBe(false);
     expect(result._OPS_MESSAGE).toBe('Identifier and password are required.');
   });
 
   it('rejects empty password only', async () => {
-    const result = await Login_Operation({
-      identifier: TEST_USER.email,
-      password: '',
-    });
+    const result = await login(TEST_USER.email, '');
     expect(result.success).toBe(false);
   });
 });

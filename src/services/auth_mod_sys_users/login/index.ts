@@ -63,9 +63,9 @@ export async function Login_Operation(
       return await OPS_Error({
         ...ops_base,
         status: 'OPERATION_FAILURE',
-        message: `Account with identifier ${identifier} does not exist. `,
+        message: 'Invalid credentials.',
         error_code: 'INVALID_CREDENTIALS',
-        error_category: 'VALIDATION',
+        error_category: 'AUTH',
         retryable: true,
       });
     }
@@ -74,12 +74,16 @@ export async function Login_Operation(
     const password_match = await Verify_Hash(password, user.password_hash);
 
     if (!password_match) {
+      // Tier 3 — feed the threat engine its first real signal: a failed
+      // credential check is by definition a CREDENTIAL_ANOMALY. This lands in
+      // the hash-chained audit log so repeated failures are queryable.
       return await OPS_Error({
         ...ops_base,
+        threat_signals: ['CREDENTIAL_ANOMALY'],
         status: 'OPERATION_FAILURE',
-        message: 'Provided Password is incorrect. ',
+        message: 'Invalid credentials.',
         error_code: 'INVALID_CREDENTIALS',
-        error_category: 'VALIDATION',
+        error_category: 'AUTH',
         retryable: true,
       });
     }
