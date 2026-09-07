@@ -16,6 +16,10 @@ import {
   ListPendingJoinRequests_Operation,
   DecideJoinRequest_Operation,
 } from '../../services/organization_management/approve_join';
+import {
+  UploadRoster_Operation,
+  GetRosterSummary_Operation,
+} from '../../services/organization_management/upload_roster';
 
 
 /* const CreateOrganizationSchema = z.object({
@@ -305,6 +309,60 @@ export async function DenyJoinRequest_Controller(req: Request, res: Response) {
   }
 
   const result = await DecideJoinRequest_Operation({ orgId, memberId, actorId, decision: 'deny', network });
+  if (!result.success) {
+    return res.status(400).json({ success: false, message: result._OPS_MESSAGE });
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: result._OPS_MESSAGE,
+    data: result._OPS_DATA,
+  });
+}
+
+// ─── MEMBER ROSTER (BYOI import) ───────────────────────────────────────────────
+export async function UploadRoster_Controller(req: Request, res: Response) {
+  const network = req.networkContext;
+  const actorId = req.user?.id;
+  const { orgId } = req.params;
+
+  if (!network || !actorId) {
+    return res.status(401).json({ success: false, message: 'Unauthorized' });
+  }
+  if (!orgId) {
+    return res.status(400).json({ success: false, message: 'Invalid Input' });
+  }
+  const csv = typeof req.body?.csv === 'string' ? req.body.csv : '';
+  const mode = req.body?.mode === 'append' ? 'append' : 'replace';
+  if (!csv.trim()) {
+    return res.status(400).json({ success: false, message: 'CSV content is required.' });
+  }
+
+  const result = await UploadRoster_Operation({ orgId, actorId, csv, mode, network });
+  if (!result.success) {
+    return res.status(400).json({ success: false, message: result._OPS_MESSAGE });
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: result._OPS_MESSAGE,
+    data: result._OPS_DATA,
+  });
+}
+
+export async function GetRosterSummary_Controller(req: Request, res: Response) {
+  const network = req.networkContext;
+  const actorId = req.user?.id;
+  const { orgId } = req.params;
+
+  if (!network || !actorId) {
+    return res.status(401).json({ success: false, message: 'Unauthorized' });
+  }
+  if (!orgId) {
+    return res.status(400).json({ success: false, message: 'Invalid Input' });
+  }
+
+  const result = await GetRosterSummary_Operation({ orgId, actorId, network });
   if (!result.success) {
     return res.status(400).json({ success: false, message: result._OPS_MESSAGE });
   }

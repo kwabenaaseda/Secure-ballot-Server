@@ -10,6 +10,8 @@ import { AppDataSource } from '../../../config/database';
 import { Election } from '../../../entities/Election';
 import { OrgMembers } from '../../../entities/OrgMembers';
 import { NetworkContext } from '../../../lib/ops/ops.types';
+import Operations_Manager, { Authorize } from '../../../utils/ops.manager';
+import { NotifyOrgMembers } from '../../notifications';
 
 const SOURCE = 'CloseElection_Operation';
 const EVENT = 'ELECTION_CLOSE';
@@ -51,6 +53,24 @@ export async function CloseElection_Operation(payload: {
         message: 'Election not found.',
         error_code: 'ELECTION_NOT_FOUND',
         error_category: 'VALIDATION',
+        retryable: false,
+      });
+    }
+
+    // Tier gate (matrix layer) — row-level admin check follows below.
+    const ops = await Operations_Manager({
+      user_id: payload.actorId,
+      org_id: election.org.id,
+      location: 'organization',
+    });
+    if (ops === false || !Authorize(ops.role, 'election', 'update_metadata')) {
+      await queryRunner.rollbackTransaction();
+      return await OPS_Error({
+        ...ops_base,
+        status: 'OPERATION_FAILURE',
+        message: 'Not authorized to close this election.',
+        error_code: 'FORBIDDEN',
+        error_category: 'AUTH',
         retryable: false,
       });
     }
@@ -98,6 +118,18 @@ export async function CloseElection_Operation(payload: {
     election.status = 'closed';
     await queryRunner.manager.save(election);
     await queryRunner.commitTransaction();
+
+    // Notify active org members that voting has ended (best-effort).
+    void NotifyOrgMembers(
+      election.org.id,
+      {
+        type: 'ELECTION_CLOSED',
+        title: `Voting has ended: ${election.name}`,
+        body: `Voting in ${election.name} (${election.org.name}) has closed. Results will follow once released.`,
+        link: `/elections/${election.id}`,
+      },
+      payload.actorId,
+    );
 
     Log.info(SOURCE, `Election ${election.id} closed`, EVENT);
     return await OPS_Success({

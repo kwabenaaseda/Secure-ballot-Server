@@ -11,6 +11,7 @@ import { OrgMembers } from '../../../entities/OrgMembers';
 import { Organization } from '../../../entities/Organization';
 import { OrgMemberProfiles } from '../../../entities/OrgMember_profile';
 import { NetworkContext } from '../../../lib/ops/ops.types';
+import Operations_Manager, { Authorize } from '../../../utils/ops.manager';
 
 const SOURCE = 'MemberManagement_Operation';
 
@@ -58,6 +59,21 @@ async function notAuthorized(ops_base: ReturnType<typeof base>) {
   });
 }
 
+// ─── TIER-PERMISSION GATE ─────────────────────────────────────────────────────
+// Coarse matrix layer. Both ORG_ACCESS[PART] and ORG_ACCESS[FULL] carry
+// org_membership.verify_join_request; a `false` here means the caller's
+// resolved role tier is not entitled to manage org membership at all.
+// Row-level ownership checks still run after this in each operation.
+async function hasOrgMemberTier(actorId: string, orgId: string): Promise<boolean> {
+  const ops = await Operations_Manager({
+    user_id: actorId,
+    org_id: orgId,
+    location: 'organization',
+  });
+  if (ops === false) return false;
+  return Authorize(ops.role, 'org_membership', 'verify_join_request');
+}
+
 // ─── LIST MEMBERS ─────────────────────────────────────────────────────────────
 export async function ListMembers_Operation(payload: {
   orgId: string;
@@ -68,6 +84,18 @@ export async function ListMembers_Operation(payload: {
   const started_at = Date.now();
 
   try {
+    if (!(await hasOrgMemberTier(payload.actorId, payload.orgId))) {
+      return await OPS_Error({
+        ...ops_base,
+        started_at,
+        status: 'OPERATION_FAILURE',
+        message: 'Not authorized to manage org membership.',
+        error_code: 'FORBIDDEN',
+        error_category: 'AUTH',
+        retryable: false,
+      });
+    }
+
     const memberRepo = AppDataSource.getRepository(OrgMembers);
     const membership = await authorize(memberRepo, payload.orgId, payload.actorId, ['admin', 'moderator']);
     if (!membership) return await notAuthorized({ ...ops_base, started_at });
@@ -140,6 +168,19 @@ export async function UpdateMemberRole_Operation(payload: {
   await queryRunner.startTransaction();
 
   try {
+    if (!(await hasOrgMemberTier(payload.actorId, payload.orgId))) {
+      await queryRunner.rollbackTransaction();
+      return await OPS_Error({
+        ...ops_base,
+        started_at,
+        status: 'OPERATION_FAILURE',
+        message: 'Not authorized to manage org membership.',
+        error_code: 'FORBIDDEN',
+        error_category: 'AUTH',
+        retryable: false,
+      });
+    }
+
     const memberRepo = queryRunner.manager.getRepository(OrgMembers);
     const actor = await authorize(memberRepo, payload.orgId, payload.actorId, ['admin']);
     if (!actor) {
@@ -249,6 +290,19 @@ export async function UpdateMemberStatus_Operation(payload: {
   await queryRunner.startTransaction();
 
   try {
+    if (!(await hasOrgMemberTier(payload.actorId, payload.orgId))) {
+      await queryRunner.rollbackTransaction();
+      return await OPS_Error({
+        ...ops_base,
+        started_at,
+        status: 'OPERATION_FAILURE',
+        message: 'Not authorized to manage org membership.',
+        error_code: 'FORBIDDEN',
+        error_category: 'AUTH',
+        retryable: false,
+      });
+    }
+
     const memberRepo = queryRunner.manager.getRepository(OrgMembers);
     const actor = await authorize(memberRepo, payload.orgId, payload.actorId, ['admin']);
     if (!actor) {

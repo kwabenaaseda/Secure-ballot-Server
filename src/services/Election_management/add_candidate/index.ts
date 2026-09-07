@@ -7,6 +7,7 @@ import { Candidate } from '../../../entities/Candidates';
 import { Election } from '../../../entities/Election';
 import { OrgMembers } from '../../../entities/OrgMembers';
 import { VoteTally } from '../../../entities/Vote_tally';
+import Operations_Manager, { Authorize } from '../../../utils/ops.manager';
 
 const EVENT = 'CANDIDATE_ADD';
 const SOURCE = 'AddCandidate_Operation';
@@ -75,6 +76,24 @@ export async function AddCandidate_Operation(
         message: 'Candidates can only be added while the election is in draft.',
         error_code: 'ELECTION_NOT_EDITABLE',
         error_category: 'VALIDATION',
+        retryable: false,
+      });
+    }
+
+    // ── ROLE-PERMISSION GATE (tier layer) ─────────────────────────────────────
+    const ops = await Operations_Manager({
+      user_id: payload.creator_id,
+      org_id: election.org.id,
+      location: 'organization',
+    });
+    if (ops === false || !Authorize(ops.role, 'election', 'update_metadata')) {
+      await queryRunner.rollbackTransaction();
+      return await OPS_Error({
+        ...ops_base,
+        status: 'OPERATION_FAILURE',
+        message: 'Not authorized to manage this election.',
+        error_code: 'FORBIDDEN',
+        error_category: 'AUTH',
         retryable: false,
       });
     }

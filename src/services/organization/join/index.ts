@@ -6,6 +6,8 @@ import { AppDataSource } from '../../../config/database';
 import { OrganizationAuth } from '../../../entities/Org_auth';
 import { OrgMembers } from '../../../entities/OrgMembers';
 import { OrgMemberProfiles } from '../../../entities/OrgMember_profile';
+import { OrgRoster } from '../../../entities/OrgRoster';
+import { User } from '../../../entities/User';
 import { NetworkContext } from '../../../lib/ops/ops.types';
 import { hasJoinGrant } from '../../organization/verify_code';
 import { Organization } from '../../../entities/Organization';
@@ -84,17 +86,45 @@ export async function JoinOrganization_Operation(payload: {
     const customFields = (auth?.custom_fields as any[]) ?? [];
     const isOpenMode = customFields.length === 0;
 
+    // Roster pre-verification: if the org has an uploaded member roster and
+    // the joining account's email matches an unclaimed row, the membership
+    // is activated immediately (verified via the org's own roster) instead
+    // of waiting for manual admin review. No match → normal pending flow.
+    const user = await queryRunner.manager.getRepository(User).findOne({
+      where: { id: payload.userId },
+      select: ['id', 'email'],
+    });
+    const rosterRows = await queryRunner.manager.getRepository(OrgRoster).find({
+      where: { org: { id: payload.orgId } },
+    });
+    const rosterMatch =
+      rosterRows.length > 0 && user?.email
+        ? (rosterRows.find(
+            (r) => r.status === 'unclaimed' && r.email === user.email.toLowerCase(),
+          ) ?? null)
+        : null;
+    const rosterAutoApproved = isOpenMode ? false : rosterMatch !== null;
+
     // Open mode: piggyback on existing account verification, active immediately.
-    // Custom mode: pending until an org admin reviews (verify_join_request).
+    // Roster match: activated immediately, verified via the org's roster.
+    // Otherwise (custom mode): pending until an org admin reviews.
     const membership = queryRunner.manager.create(OrgMembers, {
       org: { id: payload.orgId } as any,
       user: { id: payload.userId } as any,
       role: 'voter',
-      status: isOpenMode ? 'active' : 'pending',
+      status: isOpenMode || rosterAutoApproved ? 'active' : 'pending',
       verified_via: isOpenMode ? 'email_verified' : 'custom',
-      joined_at: isOpenMode ? new Date() : null,
+      joined_at: isOpenMode || rosterAutoApproved ? new Date() : null,
     });
     await queryRunner.manager.save(membership);
+
+    if (rosterAutoApproved && rosterMatch) {
+      // Claim the roster row so it can't be matched twice.
+      rosterMatch.status = 'claimed';
+      rosterMatch.matched_user_id = payload.userId;
+      rosterMatch.claimed_at = new Date();
+      await queryRunner.manager.save(rosterMatch);
+    }
 
     if (!isOpenMode) {
       // Validate required fields were actually submitted before accepting.

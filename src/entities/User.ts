@@ -45,6 +45,14 @@ export class User {
   @Column({ type: 'varchar', default: 'green' })
   user_status: 'green' | 'yellow' | 'red';
 
+  // Notification preferences — persisted from the Settings page toggles and
+  // consulted by the services that create notifications / send email.
+  @Column({ type: 'boolean', name: 'notify_election_reminders', default: true })
+  notify_election_reminders: boolean;
+
+  @Column({ type: 'boolean', name: 'notify_approval_updates', default: true })
+  notify_approval_updates: boolean;
+
   @CreateDateColumn({ type: 'timestamptz' })
   created_at: Date;
 }

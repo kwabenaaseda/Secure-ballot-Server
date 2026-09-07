@@ -8,6 +8,8 @@ import { Candidate } from '../../../entities/Candidates';
 import { OrgMembers } from '../../../entities/OrgMembers';
 import { VoteRecord } from '../../../entities/Vote_record';
 import { VoteTally } from '../../../entities/Vote_tally';
+import { BiometricCredential } from '../../../entities/BiometricCredential';
+import { verifyStepUpToken } from '../../biometric/verifyStepUp';
 
 const EVENT = 'VOTE_SUBMIT';
 const SOURCE = 'CastVote_Operation';
@@ -97,28 +99,56 @@ export async function CastVote_Operation(
       });
     }
 
-    // --- STEP 2: VOTER MUST BE AN ACTIVE MEMBER OF THE ELECTION'S ORG -------------
-    // Skipped entirely for is_public elections -- anyone can vote.
-    if (!election.is_public) {
-      const memberRepo = queryRunner.manager.getRepository(OrgMembers);
-      const membership = await memberRepo.findOne({
-        where: { org: { id: election.org.id }, user: { id: voter_id } },
-      });
-
-      if (!membership || membership.status !== 'active') {
+    // --- STEP 2.5: STEP-UP (biometric) GATE -----------------------------------
+    // If the voter has enrolled biometric credentials, a valid step-up token is
+    // required to prove presence at the moment of voting.
+    const credRepo = queryRunner.manager.getRepository(BiometricCredential);
+    const enrolledCount = await credRepo.count({ where: { user_id: voter_id } });
+    if (enrolledCount > 0) {
+      if (!payload.step_up_token) {
         await queryRunner.rollbackTransaction();
         return await OPS_Error({
           ...ops_base,
           status: 'OPERATION_FAILURE',
-          message: 'You are not an active member of this organization.',
-          error_code: 'NOT_AUTHORIZED',
+          message: 'Biometric verification required. Please authenticate to vote.',
+          error_code: 'STEP_UP_REQUIRED',
           error_category: 'AUTH',
-          retryable: false,
+          retryable: true,
+        });
+      }
+      const stepUp = verifyStepUpToken(payload.step_up_token, 'VOTE', payload.election_id);
+      if (!stepUp.ok) {
+        await queryRunner.rollbackTransaction();
+        return await OPS_Error({
+          ...ops_base,
+          status: 'OPERATION_FAILURE',
+          message: stepUp.reason,
+          error_code: 'STEP_UP_INVALID',
+          error_category: 'AUTH',
+          retryable: true,
         });
       }
     }
 
-    // --- STEP 3: EVERY SELECTED CANDIDATE MUST BELONG TO THIS ELECTION ----------
+    // --- STEP 3: MEMBERSHIP GATE -------------------------------------------------
+    // Voter must be an active member of the election's organization.
+    const memberRepo = queryRunner.manager.getRepository(OrgMembers);
+    const membership = await memberRepo.findOne({
+      where: { org: { id: election.org.id }, user: { id: voter_id }, status: 'active' },
+    });
+    if (!membership) {
+      await queryRunner.rollbackTransaction();
+      return await OPS_Error({
+        ...ops_base,
+        status: 'OPERATION_FAILURE',
+        message: 'You are not an active member of this organization.',
+        error_code: 'NOT_A_MEMBER',
+        error_category: 'AUTH',
+        retryable: false,
+      });
+    }
+
+    // --- STEP 4: EVERY SELECTED CANDIDATE MUST BELONG TO THIS ELECTION ----------
     // and match the category the voter declared. Fetching all of the election's
     // candidates once validates the whole ballot server-side (handles both
     // single- and multi-category ballots) and blocks a voter from pairing a
@@ -145,7 +175,7 @@ export async function CastVote_Operation(
       chosen.push(cand);
     }
 
-    // --- STEP 4: RECORD PARTICIPATION --------------------------------------------
+    // --- STEP 5: RECORD PARTICIPATION --------------------------------------------
     // One VoteRecord per (user, election). The @Unique(['user','election'])
     // constraint turns any second ballot into a 23505 -> ALREADY_VOTED below,
     // so the entire multi-category selection is treated as a single,
@@ -157,7 +187,7 @@ export async function CastVote_Operation(
     });
     await queryRunner.manager.save(record);
 
-    // --- STEP 5: INCREMENT EACH SELECTED CANDIDATE'S TALLY -----------------------
+    // --- STEP 6: INCREMENT EACH SELECTED CANDIDATE'S TALLY -----------------------
     // Tally rows are pre-seeded at 0 by AddCandidate, so a plain atomic UPDATE
     // is safe and race-free for any number of selections (single- or
     // multi-category ballots).
@@ -203,7 +233,7 @@ export async function CastVote_Operation(
       status: 'SYSTEM_FAILURE',
       message: `An unexpected error occurred during ${EVENT}. `,
       error_code: 'INTERNAL_ERROR',
-          error_category: 'SYSTEM',
+      error_category: 'SYSTEM',
       retryable: true,
       retry_after_ms: 5000,
       stack_ref: `${EVENT}_${started_at}`,

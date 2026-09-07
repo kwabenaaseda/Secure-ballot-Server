@@ -7,6 +7,8 @@ import Election_routes from './election_management/election.routes';
 import Voting_routes from './voting/voting.routes';
 import Account_Settings_Routes from './account/account.routes';
 import Account_Dashboardd_Routes from './account/account_dashboard.routes';
+import Biometric_routes from './biometric/biometric.routes';
+import Notification_routes from './notifications/notification.routes';
 
 const ROUTES = express.Router();
 
@@ -25,6 +27,12 @@ ROUTES.use('/election', Election_routes);
 
 // ------------------- VOTING
 ROUTES.use('/vote', Voting_routes);
+
+// ------------------- BIOMETRIC (WebAuthn registration + step-up)
+ROUTES.use('/biometric', Biometric_routes);
+
+// ------------------- NOTIFICATIONS (bell icon + preferences)
+ROUTES.use('/notifications', Notification_routes);
 
 // ------------------- ACCOUNT SETTINGS
 ROUTES.use('/account/settings', Account_Settings_Routes);

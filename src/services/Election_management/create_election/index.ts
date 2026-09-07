@@ -5,6 +5,7 @@ import { CreateElectionPayload } from './types';
 import { AppDataSource } from '../../../config/database';
 import { Election } from '../../../entities/Election';
 import { OrgMembers } from '../../../entities/OrgMembers';
+import Operations_Manager, { Authorize } from '../../../utils/ops.manager';
 
 const EVENT = 'ELECTION_CREATE';
 const SOURCE = 'CreateElection_Operation';
@@ -32,6 +33,26 @@ export async function CreateElection_Operation(
   await queryRunner.startTransaction();
 
   try {
+    // ── STEP 0: ROLE-PERMISSION GATE ──────────────────────────────────────────
+    // Coarse tier gate — the fine-grained active-admin/moderator membership
+    // check follows below. Both must pass; this is purely the matrix layer.
+    const ops = await Operations_Manager({
+      user_id: payload.creator_id,
+      org_id: payload.org_id,
+      location: 'organization',
+    });
+    if (ops === false || !Authorize(ops.role, 'election', 'create')) {
+      await queryRunner.rollbackTransaction();
+      return await OPS_Error({
+        ...ops_base,
+        status: 'OPERATION_FAILURE',
+        message: 'Not authorized to create elections in this organization.',
+        error_code: 'FORBIDDEN',
+        error_category: 'AUTH',
+        retryable: false,
+      });
+    }
+
     // ── STEP 1: VALIDATE REQUIRED FIELDS ──────────────────────────────────────
     const { org_id, name, start_at, end_at, categories, creator_id } = payload;
 

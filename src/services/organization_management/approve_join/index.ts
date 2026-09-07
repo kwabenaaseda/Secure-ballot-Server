@@ -10,6 +10,7 @@ import { AppDataSource } from '../../../config/database';
 import { OrgMembers } from '../../../entities/OrgMembers';
 import { OrgMemberProfiles } from '../../../entities/OrgMember_profile';
 import { NetworkContext } from '../../../lib/ops/ops.types';
+import Operations_Manager, { Authorize } from '../../../utils/ops.manager';
 
 const SOURCE = 'ApproveJoin_Operation';
 
@@ -38,6 +39,24 @@ export async function ListPendingJoinRequests_Operation(payload: {
   const started_at = Date.now();
 
   try {
+    // Coarse tier gate — the row-level admin/moderator check follows below.
+    const ops = await Operations_Manager({
+      user_id: payload.actorId,
+      org_id: payload.orgId,
+      location: 'organization',
+    });
+    if (ops === false || !Authorize(ops.role, 'org_membership', 'verify_join_request')) {
+      return await OPS_Error({
+        ...ops_base,
+        started_at,
+        status: 'OPERATION_FAILURE',
+        message: 'Not authorized to review join requests.',
+        error_code: 'FORBIDDEN',
+        error_category: 'AUTH',
+        retryable: false,
+      });
+    }
+
     const memberRepo = AppDataSource.getRepository(OrgMembers);
     const actor = await memberRepo.findOne({
       where: { org: { id: payload.orgId }, user: { id: payload.actorId } },
@@ -118,6 +137,25 @@ export async function DecideJoinRequest_Operation(payload: {
   await queryRunner.startTransaction();
 
   try {
+    // Coarse tier gate — the row-level admin/moderator check follows below.
+    const ops = await Operations_Manager({
+      user_id: payload.actorId,
+      org_id: payload.orgId,
+      location: 'organization',
+    });
+    if (ops === false || !Authorize(ops.role, 'org_membership', 'verify_join_request')) {
+      await queryRunner.rollbackTransaction();
+      return await OPS_Error({
+        ...ops_base,
+        started_at,
+        status: 'OPERATION_FAILURE',
+        message: 'Not authorized to review join requests.',
+        error_code: 'FORBIDDEN',
+        error_category: 'AUTH',
+        retryable: false,
+      });
+    }
+
     const memberRepo = queryRunner.manager.getRepository(OrgMembers);
     const actor = await memberRepo.findOne({
       where: { org: { id: payload.orgId }, user: { id: payload.actorId } },
@@ -173,6 +211,22 @@ export async function DecideJoinRequest_Operation(payload: {
     }
     await queryRunner.manager.save(target);
     await queryRunner.commitTransaction();
+
+    // Fire in-app notification (best-effort, never fails the decision).
+    const { CreateNotification } = await import('../../notifications');
+    await CreateNotification({
+      user_id: target.user.id,
+      type: payload.decision === 'approve' ? 'JOIN_APPROVED' : 'JOIN_DENIED',
+      title:
+        payload.decision === 'approve'
+          ? `Welcome to ${target.org.name}`
+          : `Join request declined`,
+      body:
+        payload.decision === 'approve'
+          ? `Your request to join ${target.org.name} was approved. You can now participate in its elections.`
+          : `Your request to join ${target.org.name} was not approved this time.`,
+      link: payload.decision === 'approve' ? '/organizations' : '/organizations',
+    });
 
     Log.info(SOURCE, `Join request ${target.id} ${payload.decision}d`, event);
     return await OPS_Success({

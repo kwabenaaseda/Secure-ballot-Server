@@ -216,6 +216,9 @@ export interface auth_generate_token_payload {
     election_type?: 'public' | 'private';
     election_status?: 'pending' | 'active' | 'completed' | 'cancelled';
     admin?: 'admin' | 'super_admin';
+    // Step-up (biometric) token metadata — binds a short-lived token to a purpose + resource.
+    step_up_purpose?: 'VOTE' | 'ACCOUNT_MUTATE';
+    step_up_resource?: string;
   };
 }
 

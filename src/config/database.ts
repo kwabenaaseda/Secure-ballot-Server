@@ -18,6 +18,10 @@ import { TokenBlacklist } from '../entities/token_blacklist.ts';
 import { User } from '../entities/User.ts';
 import { VoteRecord } from '../entities/Vote_record.ts';
 import { VoteTally } from '../entities/Vote_tally.ts';
+import { BiometricCredential } from '../entities/BiometricCredential.ts';
+import { Notification } from '../entities/Notification.ts';
+import { OrgRoster } from '../entities/OrgRoster.ts';
+
 import { OtpCode } from '../entities/OtpCode.ts';
 VALIDATE_ENV();
 
@@ -56,6 +60,9 @@ export const AppDataSource = new DataSource({
     VoteRecord,
     VoteTally,
     OtpCode,
+    BiometricCredential,
+    Notification,
+    OrgRoster,
   ],
   migrations: ['src/migrations/*.ts'],
   subscribers: [],

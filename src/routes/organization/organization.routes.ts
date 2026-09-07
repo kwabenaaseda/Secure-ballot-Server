@@ -12,6 +12,8 @@ import {
   DenyJoinRequest_Controller,
   DeleteOrganization_Controller,
   VerifyOrgCode_Controller,
+  UploadRoster_Controller,
+  GetRosterSummary_Controller,
 } from '../../controllers/organization/organization.controller';
 import { AuthMiddleware } from '../../middleware/auth.middleware';
 import { NetworkContextMiddleware } from '../../middleware/networkContext';
@@ -37,5 +39,9 @@ Org_routes.patch('/:orgId/members/:memberId/status', AuthMiddleware, NetworkCont
 Org_routes.get('/:orgId/join-requests', AuthMiddleware, NetworkContextMiddleware, ListPendingJoinRequests_Controller);
 Org_routes.post('/:orgId/join-requests/:memberId/approve', AuthMiddleware, NetworkContextMiddleware, ApproveJoinRequest_Controller);
 Org_routes.post('/:orgId/join-requests/:memberId/deny', AuthMiddleware, NetworkContextMiddleware, DenyJoinRequest_Controller);
+
+// Org-admin roster import (BYOI pre-verification)
+Org_routes.get('/:orgId/roster', AuthMiddleware, NetworkContextMiddleware, GetRosterSummary_Controller);
+Org_routes.post('/:orgId/roster', AuthMiddleware, NetworkContextMiddleware, UploadRoster_Controller);
 
 export default Org_routes;

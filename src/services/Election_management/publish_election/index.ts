@@ -11,6 +11,8 @@ import { Election } from '../../../entities/Election';
 import { Candidate } from '../../../entities/Candidates';
 import { OrgMembers } from '../../../entities/OrgMembers';
 import { NetworkContext } from '../../../lib/ops/ops.types';
+import Operations_Manager, { Authorize } from '../../../utils/ops.manager';
+import { NotifyOrgMembers } from '../../notifications';
 
 const SOURCE = 'PublishElection_Operation';
 const EVENT = 'ELECTION_PUBLISH';
@@ -52,6 +54,24 @@ export async function PublishElection_Operation(payload: {
         message: 'Election not found.',
         error_code: 'ELECTION_NOT_FOUND',
         error_category: 'VALIDATION',
+        retryable: false,
+      });
+    }
+
+    // Tier gate (matrix layer) — row-level admin check follows below.
+    const ops = await Operations_Manager({
+      user_id: payload.actorId,
+      org_id: election.org.id,
+      location: 'organization',
+    });
+    if (ops === false || !Authorize(ops.role, 'election', 'publish')) {
+      await queryRunner.rollbackTransaction();
+      return await OPS_Error({
+        ...ops_base,
+        status: 'OPERATION_FAILURE',
+        message: 'Not authorized to publish this election.',
+        error_code: 'FORBIDDEN',
+        error_category: 'AUTH',
         retryable: false,
       });
     }
@@ -141,6 +161,14 @@ export async function PublishElection_Operation(payload: {
     election.status = 'published';
     await queryRunner.manager.save(election);
     await queryRunner.commitTransaction();
+
+    // Notify active org members (best-effort, never fails the publish).
+    void NotifyOrgMembers(election.org.id, {
+      type: 'ELECTION_PUBLISHED',
+      title: `Election open: ${election.name}`,
+      body: `Voting is now open in ${election.org.name}. Cast your ballot before ${new Date(election.end_at).toLocaleString()}.`,
+      link: `/elections/${election.id}`,
+    });
 
     Log.info(SOURCE, `Election ${election.id} published`, EVENT);
     return await OPS_Success({

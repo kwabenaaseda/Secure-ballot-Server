@@ -11,6 +11,8 @@ import { Election } from '../../../entities/Election';
 import { OrgMembers } from '../../../entities/OrgMembers';
 import { NetworkContext } from '../../../lib/ops/ops.types';
 import { effectiveElectionStatus, finalizeElectionIfExpired } from '../helpers/election.status';
+import Operations_Manager, { Authorize } from '../../../utils/ops.manager';
+import { NotifyOrgMembers } from '../../notifications';
 
 const SOURCE = 'ReleaseResults_Operation';
 const EVENT = 'ELECTION_RESULTS_RELEASE';
@@ -56,6 +58,24 @@ export async function ReleaseResults_Operation(payload: {
       });
     }
     await finalizeElectionIfExpired(electionRepo, election);
+
+    // Tier gate (matrix layer) — row-level admin check follows below.
+    const ops = await Operations_Manager({
+      user_id: payload.actorId,
+      org_id: election.org.id,
+      location: 'organization',
+    });
+    if (ops === false || !Authorize(ops.role, 'election.result_certified', 'approve')) {
+      await queryRunner.rollbackTransaction();
+      return await OPS_Error({
+        ...ops_base,
+        status: 'OPERATION_FAILURE',
+        message: 'Not authorized to release results for this election.',
+        error_code: 'FORBIDDEN',
+        error_category: 'AUTH',
+        retryable: false,
+      });
+    }
 
     const memberRepo = queryRunner.manager.getRepository(OrgMembers);
     const membership = await memberRepo.findOne({
@@ -103,6 +123,18 @@ export async function ReleaseResults_Operation(payload: {
     election.results_released_by = payload.actorId;
     await queryRunner.manager.save(election);
     await queryRunner.commitTransaction();
+
+    // Notify active org members (best-effort, never fails the release).
+    void NotifyOrgMembers(
+      election.org.id,
+      {
+        type: 'ELECTION_RESULTS_RELEASED',
+        title: `Results are in: ${election.name}`,
+        body: `The results of ${election.name} in ${election.org.name} have been officially released.`,
+        link: `/elections/${election.id}`,
+      },
+      payload.actorId,
+    );
 
     Log.info(SOURCE, `Results for election ${election.id} released`, EVENT);
     return await OPS_Success({

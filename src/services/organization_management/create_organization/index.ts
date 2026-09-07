@@ -6,6 +6,7 @@ import { AppDataSource } from '../../../config/database';
 import { Organization } from '../../../entities/Organization';
 import { OrgMembers } from '../../../entities/OrgMembers';
 import { OrganizationAuth } from '../../../entities/Org_auth';
+import Operations_Manager, { Authorize } from '../../../utils/ops.manager';
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 
@@ -36,6 +37,27 @@ export async function CreateOrganization_Operation(
   await queryRunner.startTransaction();
 
   try {
+    // ── STEP 0: ROLE-PERMISSION GATE ──────────────────────────────────────────
+    // Creating an organization grants the creator admin control over a new
+    // (pending) org. The permission matrix restricts this to fully-verified
+    // accounts (ACCOUNT_ACCESS[FULL] -> organization.create). Row-level checks
+    // after this still govern any downstream election/member actions.
+    const ops = await Operations_Manager({
+      user_id: payload.creator_id,
+      location: 'domestic',
+    });
+    if (ops === false || !Authorize(ops.role, 'organization', 'create')) {
+      await queryRunner.rollbackTransaction();
+      return await OPS_Error({
+        ...ops_base,
+        status: 'OPERATION_FAILURE',
+        message: 'Not authorized to create an organization.',
+        error_code: 'FORBIDDEN',
+        error_category: 'AUTH',
+        retryable: false,
+      });
+    }
+
     // ── STEP 1: VALIDATE REQUIRED FIELDS ──────────────────────────────────────
     const { name, sector, email, visibility, creator_id } = payload;
 

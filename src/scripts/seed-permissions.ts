@@ -71,6 +71,11 @@ const MATRIX: { role: string; resource: string; action: string; effect?: 'ALLOW'
   // DeleteOrganization_Operation enforces the row-level side (active admin of
   // THAT org) — this row grants the tier.
   { role: 'ORG_ACCESS[PART]', resource: 'organization', action: 'delete', effect: 'ALLOW' },
+  // Admins and moderators both manage a live/draft election's contents
+  // (add candidates, close it) — the row-level checks permit role 'admin' and
+  // 'moderator', so the coarse tier must too. Keeping this on PART (and FULL)
+  // prevents the matrix from denying an action the inline check already allows.
+  { role: 'ORG_ACCESS[PART]', resource: 'election', action: 'update_metadata', effect: 'ALLOW' },
 
   // ── ORG_ACCESS[FULL] ── owner/moderator tier — everything ORG_ACCESS[PART]
   // has, written out explicitly (no inheritance in the lookup), PLUS owner-only actions.

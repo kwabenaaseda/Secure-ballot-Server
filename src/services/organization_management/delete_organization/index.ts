@@ -20,6 +20,7 @@ import { Candidate } from '../../../entities/Candidates';
 import { VoteTally } from '../../../entities/Vote_tally';
 import { VoteRecord } from '../../../entities/Vote_record';
 import { NetworkContext } from '../../../lib/ops/ops.types';
+import Operations_Manager, { Authorize } from '../../../utils/ops.manager';
 
 const SOURCE = 'DeleteOrganization_Operation';
 const EVENT = 'DELETE_ORGANIZATION';
@@ -48,6 +49,24 @@ export async function DeleteOrganization_Operation(payload: {
   await queryRunner.startTransaction();
 
   try {
+    // Tier gate (matrix layer) — row-level admin check follows below.
+    const ops = await Operations_Manager({
+      user_id: payload.actorId,
+      org_id: payload.orgId,
+      location: 'organization',
+    });
+    if (ops === false || !Authorize(ops.role, 'organization', 'delete')) {
+      await queryRunner.rollbackTransaction();
+      return await OPS_Error({
+        ...ops_base,
+        status: 'OPERATION_FAILURE',
+        message: 'Not authorized to delete this organization.',
+        error_code: 'FORBIDDEN',
+        error_category: 'AUTH',
+        retryable: false,
+      });
+    }
+
     const orgRepo = queryRunner.manager.getRepository(Organization);
     const org = await orgRepo.findOneBy({ id: payload.orgId });
     if (!org) {

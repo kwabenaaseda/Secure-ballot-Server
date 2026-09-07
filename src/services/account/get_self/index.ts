@@ -3,6 +3,7 @@ import { Service_Success_Handler, Service_Error_Handler } from '../../../types/R
 import { OPS_Success, OPS_Error } from '../../../lib/ops/ops.factory';
 import { AppDataSource } from '../../../config/database';
 import { User } from '../../../entities/User';
+import { BiometricCredential } from '../../../entities/BiometricCredential';
 import Operations_Manager, { Authorize } from '../../../utils/ops.manager';
 import { NetworkContext } from '../../../lib/ops/ops.types';
 
@@ -62,6 +63,17 @@ export async function GetSelf_Operation(params: { userId: string; network: Netwo
     // should never leave the server. Whitelist fields explicitly rather
     // than destructuring-and-omitting, so a new sensitive column added
     // later to the entity doesn't accidentally leak by default.
+
+    // Enrollment summary — how many passkeys this account has enrolled.
+    // We never return the credential material, only a safe summary so the
+    // client can show/render device-management UI (count + display names).
+    const credRepo = AppDataSource.getRepository(BiometricCredential);
+    const enrolled = await credRepo.find({
+      where: { user_id: params.userId },
+      select: ['id', 'device_name', 'created_at'],
+      order: { created_at: 'DESC' },
+    });
+
     return await OPS_Success({
       ...ops_base,
       status: 'COMPLETED',
@@ -78,7 +90,17 @@ export async function GetSelf_Operation(params: { userId: string; network: Netwo
         profile_picture: user.profile_picture,
         verification_status: user.verification_status,
         user_status: user.user_status,
-        }
+        notify_election_reminders: user.notify_election_reminders,
+        notify_approval_updates: user.notify_approval_updates,
+        },
+        biometrics: {
+          enrolled: enrolled.length > 0,
+          devices: enrolled.map((d) => ({
+            id: d.id,
+            device_name: d.device_name,
+            created_at: d.created_at,
+          })),
+        },
       },
     });
   } catch (error) {

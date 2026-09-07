@@ -19,4 +19,6 @@ export interface CastVotePayload {
   voter_id: string;
   network: NetworkContext;
   auth: AuthContext;
+  // Optional step-up token (biometric) — required when the voter has biometrics enrolled.
+  step_up_token?: string;
 }
