@@ -86,6 +86,59 @@ Auth_user.post('/login', authLimiter, NetworkContextMiddleware, Login_Controller
 
 /**
  * @swagger
+ * /auth/user/biometric/login/start:
+ *   post:
+ *     summary: Start a WebAuthn biometric login (returns assertion options)
+ *     tags: [Auth - User]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               identifier:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: WebAuthn assertion options
+ *       400:
+ *         description: Invalid request or no enrolled credentials
+ */
+Auth_user.post('/biometric/login/start', authLimiter, NetworkContextMiddleware, (req, res) =>
+  // controller handles validation
+  require('../../../controllers/authentication/auth_user.controller').BiometricLoginStart_Controller(req, res)
+);
+
+/**
+ * @swagger
+ * /auth/user/biometric/login/finish:
+ *   post:
+ *     summary: Finish a WebAuthn biometric login (verify assertion)
+ *     tags: [Auth - User]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               userId:
+ *                 type: string
+ *               response:
+ *                 type: object
+ *     responses:
+ *       200:
+ *         description: Login successful. Tokens returned.
+ *       401:
+ *         description: Verification failed.
+ */
+Auth_user.post('/biometric/login/finish', authLimiter, NetworkContextMiddleware, (req, res) =>
+  require('../../../controllers/authentication/auth_user.controller').BiometricLoginFinish_Controller(req, res)
+);
+
+/**
+ * @swagger
  * /auth/user/verify-otp:
  *   post:
  *     summary: Verify OTP code to complete authentication

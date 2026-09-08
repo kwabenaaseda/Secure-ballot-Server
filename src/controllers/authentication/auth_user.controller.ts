@@ -10,6 +10,8 @@ import { Resend_OTP } from '../../services/auth_mod_sys_users/resendOTP';
 import { Verify_Reset_Password_OTP } from '../../services/auth_mod_sys_users/account_recovery/reset_verify_otp';
 import { ResetPassword_Operation } from '../../services/auth_mod_sys_users/account_recovery/reset_password';
 import { RefreshTokens_Operation } from '../../services/auth/refresh';
+import { BiometricLoginStart_Operation } from '../../services/biometric/login/start';
+import { BiometricLoginFinish_Operation } from '../../services/biometric/login/finish';
 import { z } from 'zod';
 
 // The OTP was already proven by verify-recovery-otp, whose 5-minute Bearer
@@ -269,4 +271,46 @@ export async function RefreshTokens_Controller(req: Request, res: Response) {
     message: result._OPS_MESSAGE,
     data: result._OPS_DATA,
   });
+}
+
+export async function BiometricLoginStart_Controller(req: Request, res: Response) {
+  const { identifier } = req.body;
+  const network = req.networkContext;
+
+  if (!network) {
+    return res.status(400).json({ success: false, message: 'Invalid request.' });
+  }
+
+  // identifier is optional - if not provided, use discoverable credentials flow
+  const params = { identifier, network } as any;
+  const result = await BiometricLoginStart_Operation(params);
+
+  if (!result.success) {
+    return res.status(400).json({ success: false, message: result._OPS_MESSAGE });
+  }
+
+  return res.status(200).json({ success: true, message: result._OPS_MESSAGE, data: result._OPS_DATA });
+}
+
+export async function BiometricLoginFinish_Controller(req: Request, res: Response) {
+  const { userId, response } = req.body;
+  const network = req.networkContext;
+
+  if (!network) {
+    return res.status(400).json({ success: false, message: 'Invalid request.' });
+  }
+
+  // userId is optional for discoverable credentials flow
+  if (!response) {
+    return res.status(400).json({ success: false, message: 'response is required.' });
+  }
+
+  const params = { userId, response, network } as any;
+  const result = await BiometricLoginFinish_Operation(params);
+
+  if (!result.success) {
+    return res.status(401).json({ success: false, message: result._OPS_MESSAGE });
+  }
+
+  return res.status(200).json({ success: true, message: result._OPS_MESSAGE, data: result._OPS_DATA });
 }

@@ -19,6 +19,7 @@ import { User } from '../entities/User';
 import { OrgMembers } from '../entities/OrgMembers';
 import { Organization } from '../entities/Organization';
 import { RolePermission } from '../entities/RolePermission';
+import { SystemAdmin } from '../entities/SystemAdmin';
 import { AppDataSource } from '../config/database';
 import { Log } from './Logger';
 
@@ -120,8 +121,25 @@ async function USER_PROFILE(payload: {
 }): Promise<user_profiler | false> {
   const { user_id, org_id } = payload;
   try {
+    // First, try to find the user in the User table
     const user = await AppDataSource.getRepository(User).findOneBy({ id: user_id });
-    if (!user) return false;
+    
+    // If not found in User table, check SystemAdmin table
+    if (!user) {
+      const admin = await AppDataSource.getRepository(SystemAdmin).findOneBy({ id: user_id });
+      if (admin) {
+        // Return a synthetic profile for system admins
+        // Admins are always treated as verified/green — they were vetted at onboarding time
+        const adminProfile: user_profiler = {
+          username: admin.username,
+          verification_status: 'verified' as const,
+          user_status: 'green' as const,
+        };
+        
+        return adminProfile;
+      }
+      return false;
+    }
 
     const base: user_profiler = {
       username: user.username,
@@ -131,10 +149,11 @@ async function USER_PROFILE(payload: {
 
     if (!org_id) return base;
 
-    const org = await AppDataSource.getRepository(Organization).findOneBy({ id: org_id });
-    if (!org) return false;
-
-    const member = await AppDataSource.getRepository(OrgMembers).findOneBy({ org, user });
+    // Use explicit relation IDs for more reliable query
+    const member = await AppDataSource.getRepository(OrgMembers).findOne({
+      where: { org: { id: org_id }, user: { id: user_id } },
+    });
+    
     if (!member) return false;
 
     return {
@@ -152,11 +171,23 @@ async function USER_PROFILE(payload: {
 // ── Shared ladder: unverified -> account PART; org inactive -> account
 // FULL/PART by verification tier; org active & verified -> the
 // role-specific tier passed in (which may itself be "no_access"). ──
+// 
+// NOTE: Org admins/moderators retain their org role even when org membership
+// is 'pending' (e.g., newly created org awaiting system admin approval).
+// This allows them to view/manage their org during the pending period.
 function org_tier_role(profile: user_profiler, active_role: ROLES): ROLES {
-  const { verification_status, org_status } = profile;
+  const { verification_status, org_status, org_role } = profile;
 
   if (verification_status === 'unverified') return 'ACCOUNT_ACCESS[PART]';
+  
+  // Allow org admins/moderators to retain their role even when membership is pending
+  // This is needed so org creators can manage their org before system admin approval
   if (org_status !== 'active') {
+    // If user is an org admin or moderator, keep their org role
+    if (org_role === 'admin' || org_role === 'moderator') {
+      return active_role;
+    }
+    // Voters get downgraded when org is not active
     return verification_status === 'verified' ? 'ACCOUNT_ACCESS[FULL]' : 'ACCOUNT_ACCESS[PART]';
   }
   return active_role;
@@ -176,16 +207,20 @@ const ORG_ROLE_MAP: Record<'yellow' | 'green', Record<ORG_ROLE, ROLES>> = {
   },
 };
 
-export function AssignRole(profile: user_profiler, location: LOCATION): ROLES {
+export function AssignRole(profile: user_profiler, location: LOCATION, isSystemAdmin: boolean = false): ROLES {
   const { user_status, verification_status, org_role } = profile;
 
   if (user_status === 'red') return 'NO_ACCESS';
 
   if (location === 'domestic' || location === 'account') {
+    if (isSystemAdmin) return 'SYSTEM_ADMIN';
     return verification_status === 'verified' ? 'ACCOUNT_ACCESS[FULL]' : 'ACCOUNT_ACCESS[PART]';
   }
 
   if (location === 'organization') {
+    // System admins get SYSTEM_ADMIN role in org context for platform oversight
+    if (isSystemAdmin) return 'SYSTEM_ADMIN';
+    
     if (user_status !== 'yellow' && user_status !== 'green') return 'NO_ACCESS';
     if (!org_role || !(org_role in ORG_ROLE_MAP.green)) return 'NO_ACCESS';
 
@@ -207,9 +242,16 @@ async function Operations_Manager(payload: {
     const profile = await USER_PROFILE(payload);
     if (!profile) return false;
 
+    // Check if this is a system admin by looking up the SystemAdmin table
+    let isSystemAdmin = false;
+    if (profile.username) {
+      const admin = await AppDataSource.getRepository(SystemAdmin).findOneBy({ id: payload.user_id });
+      isSystemAdmin = !!admin;
+    }
+
     return {
       profile: profile, // raw facts, for any ABAC check the caller still needs to run
-      role: AssignRole(profile, payload.location),
+      role: AssignRole(profile, payload.location, isSystemAdmin),
       authorize: Authorize,
     };
   } catch (error) {

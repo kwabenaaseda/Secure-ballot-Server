@@ -14,7 +14,9 @@ export async function Logout_Controller(req: Request, res: Response) {
   const userId = req.user?.id;
   const jti = req.user?.token.token_jti;
   const exp = req.user?.token.token_exp;
-  const range = req.user?.token.token_range;
+  // Prefer org-scoped resolved role when present, then account resolved role,
+  // then fall back to the token's baked range for legacy tokens.
+  const range = (req.user as any)?.resolved_org_role ?? (req.user as any)?.resolved_role ?? req.user?.token.token_range;
   const network = req.networkContext;
 
   if (!network || !jti || exp == null) {

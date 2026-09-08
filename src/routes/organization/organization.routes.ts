@@ -28,6 +28,11 @@ Org_routes.delete('/:orgId', AuthMiddleware, NetworkContextMiddleware, DeleteOrg
 // ── Membership & join management ────────────────────────────────────────────
 // Passcode gate MUST be registered before /:orgId/join.
 Org_routes.post('/:orgId/verify-code', AuthMiddleware, NetworkContextMiddleware, VerifyOrgCode_Controller);
+// Open an organization-scoped session (issues org-scoped token)
+Org_routes.post('/:orgId/open', AuthMiddleware, NetworkContextMiddleware, async (req, res) => {
+  const { OpenOrgSession_Controller } = await import('../../controllers/organization/organization.controller');
+  return OpenOrgSession_Controller(req, res);
+});
 Org_routes.post('/:orgId/join', AuthMiddleware, NetworkContextMiddleware, JoinOrganization_Controller);
 
 // Org-admin member management

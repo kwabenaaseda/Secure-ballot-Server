@@ -112,6 +112,27 @@ export async function Get_Org_Detail(req: Request, res: Response) {
     data: result._OPS_DATA,
   });
 }
+
+// ─── OPEN ORG SESSION ───────────────────────────────────────────────────────
+export async function OpenOrgSession_Controller(req: Request, res: Response) {
+  const network = req.networkContext;
+  const userId = req.user?.id;
+  const { orgId } = req.params;
+  if (!network || !userId) {
+    return res.status(401).json({ success: false, message: 'Unauthorized' });
+  }
+  if (!orgId) {
+    return res.status(400).json({ success: false, message: 'Invalid Input' });
+  }
+
+  const { OpenOrgSession_Operation } = await import('../../services/organization/open_session');
+  const result = await OpenOrgSession_Operation({ orgId, userId, network });
+  if (!result.success) {
+    return res.status(400).json({ success: false, message: result._OPS_MESSAGE });
+  }
+
+  return res.status(200).json({ success: true, message: result._OPS_MESSAGE, data: result._OPS_DATA });
+}
 // ─── JOIN ORGANIZATION ─────────────────────────────────────────────────────────
 export async function JoinOrganization_Controller(req: Request, res: Response) {
   const network = req.networkContext;

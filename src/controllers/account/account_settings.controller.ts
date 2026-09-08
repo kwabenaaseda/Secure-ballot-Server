@@ -86,7 +86,7 @@ export async function UpdateSelf_Controller(req: Request, res: Response) {
   if (!user_id) {
     return res.status(401).json({ success: false, message: 'Unauthorized' });
   }
-  const role = req.user?.token?.token_range;
+  const role = (req.user as any)?.resolved_role ?? req.user?.token?.token_range;
   if (!role) {
     return res.status(400).json({ success: false, message: 'Invalid User Role' });
   }
@@ -122,7 +122,7 @@ export async function DeleteSelf_Controller(req: Request, res: Response) {
   if (!user_id) {
     return res.status(401).json({ success: false, message: 'Unauthorized' });
   }
-  const role = req.user?.token?.token_range;
+  const role = (req.user as any)?.resolved_role ?? req.user?.token?.token_range;
   if (!role) {
     return res.status(400).json({ success: false, message: 'Invalid User Role' });
   }

@@ -6,10 +6,13 @@ import {
   ApproveOrganization_Controller,
   RejectOrganization_Controller,
   SuspendOrganization_Controller,
+  ListAuditLogs_Controller,
+  GetAuditLogStats_Controller,
 } from '../../controllers/admin/admin_management.controller';
 import { AuthMiddleware } from '../../middleware/auth.middleware';
 import { NetworkContextMiddleware } from '../../middleware/networkContext';
 import { RequireSystemAdmin } from '../../middleware/require.system.admin';
+import { LoadPermissionCache } from '../../utils/ops.manager';
 
 const Admin_routes = Router();
 
@@ -92,6 +95,29 @@ Admin_routes.get('/organizations', ListOrganizations_Controller);
 
 /**
  * @swagger
+ * /admin/permissions/reload:
+ *   post:
+ *     summary: Reload the permission matrix from the DB (system admin only)
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Permissions reloaded.
+ *       403:
+ *         description: System admin access required.
+ */
+Admin_routes.post('/permissions/reload', async (_req, res) => {
+  try {
+    await LoadPermissionCache();
+    return res.status(200).json({ success: true, message: 'Permission cache reloaded.' });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Failed to reload permissions.' });
+  }
+});
+
+/**
+ * @swagger
  * /admin/organizations/{id}/approve:
  *   patch:
  *     summary: Approve an organization (system admin only)
@@ -170,5 +196,63 @@ Admin_routes.patch('/organizations/:id/reject', RejectOrganization_Controller);
  *         description: System admin access required.
  */
 Admin_routes.patch('/organizations/:id/suspend', SuspendOrganization_Controller);
+
+// ─── AUDIT LOG ROUTES ───────────────────────────────────────────────────────
+
+/**
+ * @swagger
+ * /admin/audit-logs:
+ *   get:
+ *     summary: List audit logs (system admin only)
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 100
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *       - in: query
+ *         name: actor_type
+ *         schema:
+ *           type: string
+ *           enum: ['VOTER', 'ORG_ADMIN', 'SYSTEM', 'SCHEDULER', 'KEYHOLDER', 'AUDITOR']
+ *       - in: query
+ *         name: event
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: success
+ *         schema:
+ *           type: boolean
+ *     responses:
+ *       200:
+ *         description: Audit logs list.
+ *       403:
+ *         description: System admin access required.
+ */
+Admin_routes.get('/audit-logs', ListAuditLogs_Controller);
+
+/**
+ * @swagger
+ * /admin/audit-logs/stats:
+ *   get:
+ *     summary: Get audit log statistics (system admin only)
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Audit log statistics.
+ *       403:
+ *         description: System admin access required.
+ */
+Admin_routes.get('/audit-logs/stats', GetAuditLogStats_Controller);
 
 export default Admin_routes;

@@ -3,6 +3,8 @@ import {
   ListUsers_Operation,
   SetUserStatus_Operation,
   ListOrganizations_Operation,
+  ListAuditLogs_Operation,
+  GetAuditLogStats_Operation,
 } from '../../services/admin_management/admin_management';
 import {
   ApproveOrganization_Operation,
@@ -126,6 +128,51 @@ export async function SuspendOrganization_Controller(req: Request, res: Response
   }
 
   return res.status(201).json({
+    success: true,
+    message: result._OPS_MESSAGE,
+    data: result._OPS_DATA,
+  });
+}
+
+// ─── AUDIT LOG CONTROLLERS ──────────────────────────────────────────────────
+
+export async function ListAuditLogs_Controller(req: Request, res: Response) {
+  const result = await ListAuditLogs_Operation({
+    admin_id: req.user!.id,
+    network: req.networkContext!,
+    limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
+    offset: req.query.offset ? parseInt(req.query.offset as string) : undefined,
+    actor_type: req.query.actor_type as string | undefined,
+    event: req.query.event as string | undefined,
+    success: req.query.success !== undefined ? req.query.success === 'true' : undefined,
+  });
+  if (!result.success) {
+    return res.status(400).json({
+      success: false,
+      message: result._OPS_MESSAGE,
+    });
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: result._OPS_MESSAGE,
+    data: result._OPS_DATA,
+  });
+}
+
+export async function GetAuditLogStats_Controller(req: Request, res: Response) {
+  const result = await GetAuditLogStats_Operation({
+    admin_id: req.user!.id,
+    network: req.networkContext!,
+  });
+  if (!result.success) {
+    return res.status(400).json({
+      success: false,
+      message: result._OPS_MESSAGE,
+    });
+  }
+
+  return res.status(200).json({
     success: true,
     message: result._OPS_MESSAGE,
     data: result._OPS_DATA,
