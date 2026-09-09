@@ -1,5 +1,5 @@
 // src/utils/otp.ts — same exported signatures, no other file needs to change
-import { timingSafeEqual } from 'node:crypto';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import { AppDataSource } from '../config/database';
 import { OtpCode } from '../entities/OtpCode';
 
@@ -15,47 +15,67 @@ function generateCode(length: number, chars: string): string {
   return Array.from(bytes, (b) => chars[b % chars.length]).join('');
 }
 
-async function hashString(str: string): Promise<string> {
-  const data = new TextEncoder().encode(str);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(hashBuffer))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
+function hashString(str: string): string {
+  return createHash('sha256').update(str).digest('hex');
 }
 
 export async function generateOTP(userIdentifier: string): Promise<string> {
   const code = generateCode(OTP_LENGTH, OTP_CHARS);
-  const hash = await hashString(code);
-  const repo = AppDataSource.getRepository(OtpCode);
+  const hash = hashString(code);
 
-  // One active code per identifier — same semantics as the old Map.set overwrite.
-  await repo.delete({ user_identifier: userIdentifier });
-  await repo.save(
-    repo.create({
-      user_identifier: userIdentifier,
-      code_hash: hash,
-      expires_at: new Date(Date.now() + OTP_TTL_MS),
-    })
-  );
+  // Use atomic upsert to avoid race conditions
+  // First delete any existing code, then insert the new one in a single transaction
+  await AppDataSource.transaction(async (manager) => {
+    const repo = manager.getRepository(OtpCode);
+    // Delete any existing codes for this user
+    const existing = await repo.findOne({ where: { user_identifier: userIdentifier } });
+    if (existing) {
+      console.log(`[OTP] Deleting existing code for user_identifier: ${userIdentifier}`);
+      await repo.delete({ user_identifier: userIdentifier });
+    }
+    // Insert new code
+    await repo.save(
+      repo.create({
+        user_identifier: userIdentifier,
+        code_hash: hash,
+        expires_at: new Date(Date.now() + OTP_TTL_MS),
+      })
+    );
+  });
 
+  console.log(`[OTP] Generated code for user_identifier: ${userIdentifier}, code: ${code}`);
   return code;
 }
 
 export async function verifyOTP(userIdentifier: string, code: string): Promise<boolean> {
   const repo = AppDataSource.getRepository(OtpCode);
   const entry = await repo.findOne({ where: { user_identifier: userIdentifier } });
-  if (!entry) return false;
+  if (!entry) {
+    console.log(`[OTP] No entry found for user_identifier: ${userIdentifier}`);
+    return false;
+  }
 
   if (Date.now() > entry.expires_at.getTime()) {
+    console.log(`[OTP] Code expired for user_identifier: ${userIdentifier}`);
     await repo.delete({ id: entry.id });
     return false;
   }
 
-  const hashedInput = await hashString(code);
+  const hashedInput = hashString(code);
   const valid =
     hashedInput.length === entry.code_hash.length &&
     timingSafeEqual(Buffer.from(hashedInput), Buffer.from(entry.code_hash));
 
-  await repo.delete({ id: entry.id }); // one-time use, same as before
+  if (valid) {
+    // Only delete on successful verification (one-time use)
+    await repo.delete({ id: entry.id });
+    console.log(`[OTP] Code verified successfully for user_identifier: ${userIdentifier}`);
+  } else {
+    console.log(`[OTP] Code mismatch for user_identifier: ${userIdentifier}`);
+    console.log(`[OTP] Input code: ${code}`);
+    console.log(`[OTP] Input hash: ${hashedInput}`);
+    console.log(`[OTP] Stored hash: ${entry.code_hash}`);
+  }
+
   return valid;
 }

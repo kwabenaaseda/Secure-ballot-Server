@@ -1,4 +1,4 @@
-# Dependencies
+l# Dependencies
 node_modules/
 package-lock.json
 yarn.lock
@@ -13,6 +13,7 @@ bun.lockb
 dist/
 build/
 .next/
+client-dist/
 
 # IDE
 .vscode/

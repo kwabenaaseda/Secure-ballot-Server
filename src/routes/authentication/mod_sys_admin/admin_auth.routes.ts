@@ -2,8 +2,11 @@ import Router from 'express';
 import {
   AdminLogin_Controller,
   OnboardAdmin_Controller,
+  VerifyAdminOTP_Controller,
+  ResendAdminOTP_Controller,
 } from '../../../controllers/authentication/admin_auth.controller';
 import { AuthMiddleware } from '../../../middleware/auth.middleware';
+import { AuthAdminMiddleware } from '../../../middleware/auth_admin.middleware';
 import { NetworkContextMiddleware } from '../../../middleware/networkContext';
 import { RequireSuperAdmin } from '../../../middleware/require.system.admin';
 import { authLimiter } from '../../../middleware/rateLimit';
@@ -44,17 +47,26 @@ const Admin_auth_routes = Router();
 // admins only come to exist via onboarding by an existing super_admin,
 // or the one-time bootstrap seed script.
 //
-// ── STATED SECURITY DECISION (Tier 0.5) ──────────────────────────────────────
-// Admin login is PASSWORD-ONLY — no OTP step. This is an explicitly accepted
-// risk, not an oversight: (1) the admin population is a small, closely-held
-// set with no self-signup path; (2) SystemAdmin is a physically separate
-// table from User, so user credentials can never satisfy this gate;
-// (3) every admin action is individually authorized (RequireSystemAdmin /
-// RequireSuperAdmin) and individually written to the hash-chained audit log;
-// (4) tokens are revocable via the blacklist (POST /auth/admin/logout).
-// If the admin population grows, the containment path is to add the standard
-// OTP ladder here (generateOTP + Brevo/Vonage send, mirroring user login).
+// ── SECURITY DECISION (MFA ENABLED) ─────────────────────────────────────────
+// Admin login is a TWO-STEP ladder, mirroring the user login flow:
+//   1) POST /auth/admin/login        — password check → emails a one-time code.
+//   2) POST /auth/admin/verify-otp   — code check → mints access + refresh
+//                                      tokens. POST /auth/admin/resend-otp
+//                                      issues a fresh code if it expires.
+// This replaces the historical password-only gate. Admins remain a small,
+// closely-held set (no self-signup; SystemAdmin is a physically separate
+// table from User), and every admin action is still individually authorized
+// (RequireSystemAdmin / RequireSuperAdmin) and hash-chained into the audit
+// log. Tokens remain revocable via the blacklist (POST /auth/admin/logout).
 Admin_auth_routes.post('/login', authLimiter, NetworkContextMiddleware, AdminLogin_Controller);
+
+// POST /auth/admin/verify-otp — completes the MFA ladder and returns tokens.
+// Requires AuthAdminMiddleware to extract adminId from PART token.
+Admin_auth_routes.post('/verify-otp', authLimiter, AuthAdminMiddleware, NetworkContextMiddleware, VerifyAdminOTP_Controller);
+
+// POST /auth/admin/resend-otp — re-emails a fresh one-time code.
+// Requires AuthAdminMiddleware to extract adminId from PART token.
+Admin_auth_routes.post('/resend-otp', authLimiter, AuthAdminMiddleware, NetworkContextMiddleware, ResendAdminOTP_Controller);
 
 // POST /auth/admin/logout — revokes the admin's access token.
 Admin_auth_routes.post(

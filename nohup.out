@@ -1,0 +1,22 @@
+✅ Environment variables validated.
+Database connected
+
+--- Generating OTP ---
+[OTP] Generated code for user_identifier: test-admin-123, code: QUD82
+Generated OTP: QUD82
+
+--- Verifying OTP ---
+[OTP] Code verified successfully for user_identifier: test-admin-123
+Verification result: true
+
+--- Testing wrong OTP ---
+[OTP] Generated code for user_identifier: test-admin-123, code: 5DP2M
+Generated OTP: 5DP2M
+[OTP] Code mismatch for user_identifier: test-admin-123
+[OTP] Input hash: 02b60b3b9ed309b730abc7006e62bf07ad5b911bc8ae57c4cf001bad35819e7a
+[OTP] Stored hash: d473026957f77eaff753c917cf762c63a3e9687fce083b2c0ee1da4e86096c7b
+Wrong OTP verification: false
+
+--- Verifying correct OTP after wrong attempt ---
+[OTP] Code verified successfully for user_identifier: test-admin-123
+Correct OTP verification: true

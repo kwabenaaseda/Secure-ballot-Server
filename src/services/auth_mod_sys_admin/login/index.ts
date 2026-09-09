@@ -4,6 +4,8 @@ import { Log } from '../../../utils/Logger';
 import { AppDataSource } from '../../../config/database';
 import { SystemAdmin } from '../../../entities/SystemAdmin';
 import { Verify_Hash, GenerateToken, Generate_Refresh_Token } from '../../../utils/auth';
+import { generateOTP } from '../../../utils/otp';
+import { sendOTPEmail } from '../../../workers/email.service';
 import { NetworkContext } from '../../../lib/ops/ops.types';
 
 const EVENT = 'SYSTEM_ADMIN_LOGIN';
@@ -88,41 +90,42 @@ export async function AdminLogin_Operation(
       });
     }
 
-    // Admins are always treated as verified/green — they didn't go through
-    // the public verification ladder, they were vetted at onboarding time.
+    // ── STEP 1 (PASSWORD): PASSED ──────────────────────────────────────────
+    // MFA: credentials are verified. Generate OTP and a short-lived PART token.
+    // The PART token is required for /verify-otp to extract the admin ID.
+    const otp = await generateOTP(admin.id);
+
+    // Generate PART token (8 minute expiry) - mirrors user login flow
     const token = await GenerateToken({
       id: admin.id,
       email: admin.email,
       username: admin.username,
-      range: 'SYSTEM_ADMIN',
+      range: 'SYSTEM_ADMIN[PART]',
       verification: 'verified',
       user_status: 'green',
       network,
-      data: { admin: admin.level }, // "admin" | "super_admin" — read by RequireSuperAdmin
+      data: { level: admin.level },
     });
-
-    if (typeof token !== 'string') {
-      return await OPS_Error({
-        ...ops_base,
-        status: 'SYSTEM_FAILURE',
-        message: 'Failed to generate session token.',
-        error_code: 'TOKEN_GENERATION_FAILED',
-        error_category: 'SYSTEM',
-        retryable: true,
-      });
-    }
 
     const refresh_token = await Generate_Refresh_Token({ id: admin.id });
 
-    Log.info(SOURCE, 'System admin logged in', EVENT);
+    // Non-blocking — the login response must not wait on email delivery.
+    sendOTPEmail({ to: admin.email, username: admin.username, otp }).catch((err) =>
+      Log.debug(SOURCE, `Admin OTP email failed: ${err}`, EVENT)
+    );
+
+    Log.info(SOURCE, 'System admin credentials verified; OTP dispatched; PART token issued', EVENT);
 
     return await OPS_Success({
       ...ops_base,
+      actor_id: admin.id,
       status: 'COMPLETED',
-      message: 'Login successful.',
+      message: 'Credentials verified. Enter the one-time code sent to your email to complete sign-in.',
       data: {
         token,
         refresh_token,
+        mfa_required: true,
+        mfa_channel: 'email',
         admin: { id: admin.id, email: admin.email, username: admin.username, level: admin.level },
       },
     });

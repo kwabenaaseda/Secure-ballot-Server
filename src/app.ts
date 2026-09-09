@@ -2,6 +2,9 @@ import 'express-async-errors'; // MUST be first — routes unhandled async throw
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import fs from 'node:fs';
 import swaggerUi from 'swagger-ui-express';
 import ROUTES from './routes/routes';
 import swaggerSpec from './config/swagger';
@@ -50,6 +53,48 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
 // ROUTES — every /api/vx request passes the coarse global limiter first;
 // the stricter authLimiter is applied per auth route inside the route files.
 app.use('/api/vx', apiLimiter, ROUTES);
+
+// ── SELF-CONTAINED PWA HOSTING ───────────────────────────────────────────────
+// If a built client exists, the server also serves the SecureBallot PWA from
+// the same origin — so the whole system (UI + API + docs) is one installable,
+// downloadable production bundle. CLIENT_DIST defaults to the sibling client
+// repo's build in dev; production images vendor it via `client-dist/`.
+const CLIENT_DIST =
+  process.env.CLIENT_DIST ||
+  path.resolve(
+    // Works for both compiled CJS (__dirname present) and native ESM (import.meta.url).
+    typeof __dirname !== 'undefined' ? __dirname : path.dirname(fileURLToPath(import.meta.url)),
+    '../client-dist'
+  );
+
+const clientIndex = path.join(CLIENT_DIST, 'index.html');
+const clientAvailable = fs.existsSync(path.join(CLIENT_DIST, 'index.html'));
+
+if (clientAvailable) {
+  Log.info('App', `Serving SecureBallot PWA from ${CLIENT_DIST}`, 'STATIC');
+
+  // Static assets (hashed JS/CSS, icons, manifest, sw.js): long-lived cache.
+  app.use(
+    express.static(CLIENT_DIST, {
+      index: false,
+      maxAge: '1y',
+      immutable: true,
+      setHeaders: (res, filePath) => {
+        // Never cache the service worker or manifest aggressively — the SW is
+        // the update signal, so it must be fetched fresh.
+        if (filePath.endsWith('/sw.js') || filePath.endsWith('manifest.webmanifest')) {
+          res.setHeader('Cache-Control', 'no-cache');
+        }
+      },
+    })
+  );
+
+  // SPA fallback: any non-API GET that isn't a real file serves index.html so
+  // deep links and PWA navigation resolve to the app shell.
+  app.get(/^\/(?!api\/).*/, (_req, res) => {
+    res.sendFile(clientIndex);
+  });
+}
 
 // ── 404 FALLBACK — same response envelope as every endpoint ──────────────────
 app.use((_req, res) => {

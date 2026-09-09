@@ -2,34 +2,52 @@ import { Request, Response, NextFunction } from 'express';
 import { AppDataSource } from '../config/database';
 import { SystemAdmin } from '../entities/SystemAdmin';
 import { Log } from '../utils/Logger';
-import Operations_Manager from '../utils/ops.manager';
 
-// Runs AFTER AuthMiddleware. This middleware verifies the admin record
-// directly from the database (not the JWT) so that admin suspensions or
-// level changes take effect immediately.
+// ── Admin authorization cache ────────────────────────────────────────────────
+// Runs AFTER AuthMiddleware, which has already verified the JWT and resolved
+// the caller's role. The previous implementation re-queried the database here
+// (Operations_Manager → User profile + SystemAdmin lookup, then another
+// SystemAdmin lookup) on EVERY admin request — 2-3 serial round-trips per call.
+//
+// This caches SystemAdmin records in memory with a short TTL so that
+// suspension / level changes still take effect quickly (within ADMIN_CACHE_TTL_MS)
+// while each authorized admin request costs at most one indexed lookup.
+const ADMIN_CACHE_TTL_MS = 30 * 1000; // 30s — balances freshness vs. DB load
+
+const adminCache = new Map<
+  string,
+  { record: SystemAdmin | null; expiresAt: number }
+>();
+
+async function findCachedAdmin(email: string): Promise<SystemAdmin | null> {
+  const now = Date.now();
+  const hit = adminCache.get(email);
+  if (hit && hit.expiresAt > now) {
+    return hit.record;
+  }
+
+  const repo = AppDataSource.getRepository(SystemAdmin);
+  let record: SystemAdmin | null = null;
+  try {
+    record = await repo.findOne({ where: { email } });
+  } catch (err) {
+    Log.warn('AdminCache', String(err), 'AUTH');
+    // fail closed on cache-miss query errors by returning null
+  }
+
+  // Cache both hits AND misses (negative caching) to avoid hammering the DB
+  // with lookups for non-admin accounts attempting admin routes.
+  adminCache.set(email, { record, expiresAt: now + ADMIN_CACHE_TTL_MS });
+  return record;
+}
+
 export async function RequireSystemAdmin(req: Request, res: Response, next: NextFunction) {
   try {
     if (!req.user) {
       return res.status(403).json({ success: false, message: 'Forbidden. System admin access required.' });
     }
 
-    // Prefer resolving the caller's role via Operations_Manager so role
-    // decisions are centralized. If Operations_Manager returns a role of
-    // SYSTEM_ADMIN we allow. Otherwise fall back to the SystemAdmin table
-    // lookup to preserve compatibility for admin tokens that are not backed
-    // by a User row.
-    try {
-      const ops = await Operations_Manager({ user_id: req.user.id, location: 'domestic' });
-      if (ops !== false && ops.role === 'SYSTEM_ADMIN') {
-        return next();
-      }
-    } catch (err) {
-      Log.warn('RequireSystemAdmin', `Operations_Manager error: ${String(err)}`, 'AUTH');
-      // continue to fallback check
-    }
-
-    const adminRepo = AppDataSource.getRepository(SystemAdmin);
-    const admin = await adminRepo.findOne({ where: { email: req.user.email } });
+    const admin = await findCachedAdmin(req.user.email);
     if (!admin || admin.status !== 'active') {
       return res.status(403).json({ success: false, message: 'Forbidden. System admin access required.' });
     }
@@ -47,23 +65,7 @@ export async function RequireSuperAdmin(req: Request, res: Response, next: NextF
       return res.status(403).json({ success: false, message: 'Forbidden. Super admin access required.' });
     }
 
-    // First try Operations_Manager to see if the resolved role is SYSTEM_ADMIN
-    // and if token_data indicates super_admin (legacy tokens). If that fails
-    // or is inconclusive, fall back to the SystemAdmin table check.
-    try {
-      const ops = await Operations_Manager({ user_id: req.user.id, location: 'domestic' });
-      if (ops !== false && ops.role === 'SYSTEM_ADMIN') {
-        // If the token stashed role data marks this as super_admin, accept it.
-        if ((req.user as any).token?.token_data === 'super_admin') return next();
-        // Otherwise fallthrough to DB check for authoritative level.
-      }
-    } catch (err) {
-      Log.warn('RequireSuperAdmin', `Operations_Manager error: ${String(err)}`, 'AUTH');
-      // continue to fallback check
-    }
-
-    const adminRepo = AppDataSource.getRepository(SystemAdmin);
-    const admin = await adminRepo.findOne({ where: { email: req.user.email } });
+    const admin = await findCachedAdmin(req.user.email);
     if (!admin || admin.status !== 'active' || admin.level !== 'super_admin') {
       return res.status(403).json({ success: false, message: 'Forbidden. Super admin access required.' });
     }

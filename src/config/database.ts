@@ -44,6 +44,22 @@ export const AppDataSource = new DataSource({
   synchronize: false, // Set to false in production, true for development
   migrationsRun: false, // Set to true if you want migrations to run automatically on app start
   logging: false,
+  // ── Connection pool ─────────────────────────────────────────────────────
+  // Reuses warm PostgreSQL connections instead of opening a new one per
+  // query. This is the single biggest hosted-load-time win for a TypeORM app:
+  // TLS handshakes and new socket setup are expensive on cold connections.
+  // Tune `max` to the platform's connection limit (Bun's default stack will
+  // keep up; most managed Postgres plans allow 5-25 concurrent connections
+  // per app instance — 10 is a safe default).
+  extra: {
+    max: parseInt(process.env.DB_POOL_MAX || '10', 10),
+    min: parseInt(process.env.DB_POOL_MIN || '1', 10),
+    idleTimeoutMillis: parseInt(process.env.DB_POOL_IDLE_TIMEOUT || '30000', 10),
+    connectionTimeoutMillis: parseInt(process.env.DB_POOL_CONNECT_TIMEOUT || '10000', 10),
+    // If the pool is exhausted, wait (don't drop) up to acquireTimeoutMillis
+    // for a slot to free up.
+    acquireTimeoutMillis: parseInt(process.env.DB_POOL_ACQUIRE_TIMEOUT || '10000', 10),
+  },
   entities: [
     Candidate,
     Election,

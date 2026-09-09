@@ -57,6 +57,8 @@ export async function ListOrganizations_Controller(req: Request, res: Response) 
   const result = await ListOrganizations_Operation({
     admin_id: req.user!.id,
     network: req.networkContext!,
+    limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
+    offset: req.query.offset ? parseInt(req.query.offset as string) : undefined,
   });
   if (!result.success) {
     return res.status(400).json({

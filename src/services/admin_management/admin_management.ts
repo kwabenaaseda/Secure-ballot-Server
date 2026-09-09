@@ -123,16 +123,29 @@ export async function SetUserStatus_Operation(payload: {
 export async function ListOrganizations_Operation(payload: {
   admin_id: string;
   network: NetworkContext;
+  limit?: number;
+  offset?: number;
 }): Promise<Service_Success_Handler | Service_Error_Handler> {
   const ops_base = base('ADMIN_LIST_ORGS', payload.admin_id, payload.network);
   try {
     const repo = AppDataSource.getRepository(Organization);
-    const orgs = await repo.find({ order: { name: 'ASC' }, take: 100 });
+    const [orgs, total] = await repo.findAndCount({
+      select: ['id', 'name', 'email', 'sector', 'status', 'visibility', 'description', 'created_at', 'primary_admin'],
+      order: { created_at: 'DESC' },
+      take: payload.limit ?? 50,
+      skip: payload.offset ?? 0,
+    });
     return await OPS_Success({
       ...ops_base,
       status: 'COMPLETED',
       message: 'Organizations retrieved.',
-      data: { organizations: orgs, count: orgs.length },
+      data: {
+        organizations: orgs,
+        count: orgs.length,
+        total,
+        limit: payload.limit ?? 50,
+        offset: payload.offset ?? 0,
+      },
     });
   } catch (error) {
     Log.debug(SOURCE, String(error), 'ADMIN_LIST_ORGS');
