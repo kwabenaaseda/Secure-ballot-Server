@@ -124,6 +124,10 @@ export async function ListMembers_Operation(payload: {
       role: m.role,
       status: m.status,
       verified_via: m.verified_via ?? null,
+      // Account-level trust signals for the org admin dashboard:
+      // verification_status = OTP/identity tier, user_status = review flag.
+      verification_status: m.user.verification_status,
+      user_status: m.user.user_status,
       joined_at: m.joined_at,
       custom_data: profilesByUserId.get(m.user.id)?.custom_data ?? null,
       submitted_at: profilesByUserId.get(m.user.id)?.submitted_at ?? null,
