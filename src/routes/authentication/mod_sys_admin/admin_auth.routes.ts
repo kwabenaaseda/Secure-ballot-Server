@@ -62,13 +62,61 @@ Admin_auth_routes.post('/login', authLimiter, NetworkContextMiddleware, AdminLog
 
 // POST /auth/admin/verify-otp — completes the MFA ladder and returns tokens.
 // Requires AuthAdminMiddleware to extract adminId from PART token.
+/**
+ * @swagger
+ * /auth/admin/verify-otp:
+ *   post:
+ *     summary: Verify admin OTP and mint access + refresh tokens
+ *     tags: [Auth - Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/VerifyOtpRequest'
+ *     responses:
+ *       200:
+ *         description: OTP verified. Admin tokens issued.
+ *       401:
+ *         description: Invalid or expired OTP.
+ */
 Admin_auth_routes.post('/verify-otp', authLimiter, AuthAdminMiddleware, NetworkContextMiddleware, VerifyAdminOTP_Controller);
 
 // POST /auth/admin/resend-otp — re-emails a fresh one-time code.
 // Requires AuthAdminMiddleware to extract adminId from PART token.
+/**
+ * @swagger
+ * /auth/admin/resend-otp:
+ *   post:
+ *     summary: Resend admin OTP code
+ *     tags: [Auth - Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: New OTP sent.
+ *       401:
+ *         description: Unauthorized.
+ */
 Admin_auth_routes.post('/resend-otp', authLimiter, AuthAdminMiddleware, NetworkContextMiddleware, ResendAdminOTP_Controller);
 
 // POST /auth/admin/logout — revokes the admin's access token.
+/**
+ * @swagger
+ * /auth/admin/logout:
+ *   post:
+ *     summary: Revoke the current admin access token (logout)
+ *     tags: [Auth - Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Logged out successfully.
+ *       401:
+ *         description: Unauthorized.
+ */
 Admin_auth_routes.post(
   '/logout',
   authLimiter,

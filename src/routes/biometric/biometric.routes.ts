@@ -11,6 +11,13 @@ import { BiometricAuthenticationFinish_Operation } from '../../services/biometri
 
 const Biometric_routes = Router();
 
+/**
+ * @swagger
+ * tags:
+ *   - name: Biometric
+ *     description: WebAuthn registration and step-up endpoints
+ */
+
 Biometric_routes.use(AuthMiddleware, NetworkContextMiddleware);
 
 const registrationFinishSchema = z.object({
@@ -30,6 +37,18 @@ const authenticationFinishSchema = z.object({
 });
 
 // POST /biometric/register/start -- issue a registration challenge
+/**
+ * @swagger
+ * /biometric/register/start:
+ *   post:
+ *     summary: Start WebAuthn registration (issue challenge)
+ *     tags: [Biometric]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Registration challenge issued.
+ */
 Biometric_routes.post('/register/start', async (req, res) => {
   try {
     const userId = req.user!.id;
@@ -47,6 +66,26 @@ Biometric_routes.post('/register/start', async (req, res) => {
 });
 
 // POST /biometric/register/finish -- verify attestation, store credential
+/**
+ * @swagger
+ * /biometric/register/finish:
+ *   post:
+ *     summary: Finish WebAuthn registration (store credential)
+ *     tags: [Biometric]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/BiometricRegisterFinishRequest'
+ *     responses:
+ *       200:
+ *         description: Credential stored.
+ *       400:
+ *         description: Invalid input.
+ */
 Biometric_routes.post('/register/finish', async (req, res) => {
   try {
     const parsed = registrationFinishSchema.safeParse(req.body);
@@ -70,6 +109,26 @@ Biometric_routes.post('/register/finish', async (req, res) => {
 });
 
 // POST /biometric/authenticate/start -- issue an authentication challenge (step-up)
+/**
+ * @swagger
+ * /biometric/authenticate/start:
+ *   post:
+ *     summary: Start WebAuthn step-up authentication (issue challenge)
+ *     tags: [Biometric]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/BiometricAuthStartRequest'
+ *     responses:
+ *       200:
+ *         description: Authentication challenge issued.
+ *       400:
+ *         description: Invalid input.
+ */
 Biometric_routes.post('/authenticate/start', async (req, res) => {
   try {
     const parsed = authenticationStartSchema.safeParse(req.body);
@@ -93,6 +152,26 @@ Biometric_routes.post('/authenticate/start', async (req, res) => {
 });
 
 // POST /biometric/authenticate/finish -- verify assertion, issue step-up token
+/**
+ * @swagger
+ * /biometric/authenticate/finish:
+ *   post:
+ *     summary: Finish WebAuthn step-up authentication (issue step-up token)
+ *     tags: [Biometric]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/BiometricAuthFinishRequest'
+ *     responses:
+ *       200:
+ *         description: Step-up token issued.
+ *       400:
+ *         description: Invalid input.
+ */
 Biometric_routes.post('/authenticate/finish', async (req, res) => {
   try {
     const parsed = authenticationFinishSchema.safeParse(req.body);
@@ -119,6 +198,18 @@ Biometric_routes.post('/authenticate/finish', async (req, res) => {
 export default Biometric_routes;
 
 // GET /biometric/devices -- list enrolled credentials for the authenticated user
+/**
+ * @swagger
+ * /biometric/devices:
+ *   get:
+ *     summary: List enrolled biometric devices
+ *     tags: [Biometric]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Enrolled devices retrieved.
+ */
 Biometric_routes.get('/devices', async (req, res) => {
   try {
     const userId = req.user!.id;
@@ -139,6 +230,27 @@ Biometric_routes.get('/devices', async (req, res) => {
 });
 
 // DELETE /biometric/devices/:id -- remove an enrolled credential
+/**
+ * @swagger
+ * /biometric/devices/{id}:
+ *   delete:
+ *     summary: Remove an enrolled biometric credential
+ *     tags: [Biometric]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Biometric credential removed.
+ *       404:
+ *         description: Credential not found.
+ */
 Biometric_routes.delete('/devices/:id', async (req, res) => {
   try {
     const userId = req.user!.id;

@@ -121,7 +121,7 @@ export async function Login_Operation(
 
     // ── STEP 6: FIRE NOTIFICATIONS (non-blocking) ──────────────────────────────
     sendOTPEmail({ to: user.email, username: user.username, otp }).catch((err) =>
-      Log.debug(SOURCE, `OTP ${otp} email failed: ${err}`, EVENT)
+      Log.debug(SOURCE, `OTP email failed: ${err}`, EVENT)
     );
 
     sendOTPSMS(user.telephone, otp).catch((err) =>

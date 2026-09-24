@@ -119,11 +119,12 @@ interface WhatsAppPayload {
 
 // ── SMS ─────────────────────────────────────────────────
 export async function sendSMS(payload: SMSPayload): Promise<boolean> {
-  const { to, message } = payload;
+  const { to } = payload;
 
   if (!VONAGE_API_KEY || !VONAGE_API_SECRET) {
-    console.warn('⚠️  VONAGE_API_KEY / VONAGE_API_SECRET not set. SMS not sent.');
-    console.log(`[SMS MOCK] To: ${to} | Message: ${message}`);
+    console.warn('SMS provider not configured. SMS not sent.');
+    // Deliberately no recipient or message content here: in the unconfigured
+    // path the OTP would otherwise be printed to server logs in plaintext.
     return true; // Don't fail signup because SMS is not configured yet
   }
 

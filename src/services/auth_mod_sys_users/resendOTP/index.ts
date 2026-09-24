@@ -59,7 +59,7 @@ export async function Resend_OTP(
     const otp = await generateOTP(userId);
 
     sendOTPEmail({ to: user.email, username: user.username, otp }).catch((err) =>
-      Log.debug(SOURCE, `OTP ${otp} email failed: ${err}`, EVENT)
+      Log.debug(SOURCE, `OTP email failed: ${err}`, EVENT)
     );
     sendOTPSMS(user.telephone, otp).catch((err) =>
       Log.debug(SOURCE, `OTP SMS failed: ${err}`, EVENT)

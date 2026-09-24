@@ -11,6 +11,13 @@ import {
 
 const Notification_routes = Router();
 
+/**
+ * @swagger
+ * tags:
+ *   - name: Notifications
+ *     description: Notification list and preference endpoints
+ */
+
 Notification_routes.use(AuthMiddleware, NetworkContextMiddleware);
 
 const prefsSchema = z.object({
@@ -19,6 +26,23 @@ const prefsSchema = z.object({
 });
 
 // GET /notifications -- list (newest first) + unread count
+/**
+ * @swagger
+ * /notifications:
+ *   get:
+ *     summary: List notifications (newest first) with unread count
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Notifications list.
+ */
 Notification_routes.get('/', async (req, res) => {
   try {
     const result = await ListNotifications_Operation({
@@ -36,6 +60,25 @@ Notification_routes.get('/', async (req, res) => {
 });
 
 // PATCH /notifications/:id/read
+/**
+ * @swagger
+ * /notifications/{id}/read:
+ *   patch:
+ *     summary: Mark a notification as read
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Notification marked as read.
+ */
 Notification_routes.patch('/:id/read', async (req, res) => {
   try {
     const result = await MarkNotificationRead_Operation({
@@ -53,6 +96,18 @@ Notification_routes.patch('/:id/read', async (req, res) => {
 });
 
 // POST /notifications/read-all
+/**
+ * @swagger
+ * /notifications/read-all:
+ *   post:
+ *     summary: Mark all notifications as read
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: All notifications marked as read.
+ */
 Notification_routes.post('/read-all', async (req, res) => {
   try {
     const result = await MarkAllNotificationsRead_Operation({
@@ -69,6 +124,26 @@ Notification_routes.post('/read-all', async (req, res) => {
 });
 
 // PATCH /notifications/preferences -- Settings toggles
+/**
+ * @swagger
+ * /notifications/preferences:
+ *   patch:
+ *     summary: Update notification preferences
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/NotificationPrefsRequest'
+ *     responses:
+ *       200:
+ *         description: Preferences updated.
+ *       400:
+ *         description: Invalid input.
+ */
 Notification_routes.patch('/preferences', async (req, res) => {
   try {
     const parsed = prefsSchema.safeParse(req.body);

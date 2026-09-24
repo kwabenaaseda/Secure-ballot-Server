@@ -2,6 +2,9 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { AppDataSource } from '../config/database';
 import { OtpCode } from '../entities/OtpCode';
+import { Log } from './Logger';
+
+const SOURCE = 'OTP_UTIL';
 
 const OTP_LENGTH = 5;
 // 10 minutes — matches what the OTP and password-reset email/SMS copy tells
@@ -30,7 +33,6 @@ export async function generateOTP(userIdentifier: string): Promise<string> {
     // Delete any existing codes for this user
     const existing = await repo.findOne({ where: { user_identifier: userIdentifier } });
     if (existing) {
-      console.log(`[OTP] Deleting existing code for user_identifier: ${userIdentifier}`);
       await repo.delete({ user_identifier: userIdentifier });
     }
     // Insert new code
@@ -43,7 +45,9 @@ export async function generateOTP(userIdentifier: string): Promise<string> {
     );
   });
 
-  console.log(`[OTP] Generated code for user_identifier: ${userIdentifier}, code: ${code}`);
+  // The plaintext code is returned to the caller so it can be delivered over
+  // the verified channel (email/SMS). It is NEVER logged — the DB stores only
+  // the SHA-256 hash.
   return code;
 }
 
@@ -51,12 +55,10 @@ export async function verifyOTP(userIdentifier: string, code: string): Promise<b
   const repo = AppDataSource.getRepository(OtpCode);
   const entry = await repo.findOne({ where: { user_identifier: userIdentifier } });
   if (!entry) {
-    console.log(`[OTP] No entry found for user_identifier: ${userIdentifier}`);
     return false;
   }
 
   if (Date.now() > entry.expires_at.getTime()) {
-    console.log(`[OTP] Code expired for user_identifier: ${userIdentifier}`);
     await repo.delete({ id: entry.id });
     return false;
   }
@@ -69,12 +71,11 @@ export async function verifyOTP(userIdentifier: string, code: string): Promise<b
   if (valid) {
     // Only delete on successful verification (one-time use)
     await repo.delete({ id: entry.id });
-    console.log(`[OTP] Code verified successfully for user_identifier: ${userIdentifier}`);
+    Log.info(SOURCE, 'OTP verified successfully', 'OTP_VERIFY');
   } else {
-    console.log(`[OTP] Code mismatch for user_identifier: ${userIdentifier}`);
-    console.log(`[OTP] Input code: ${code}`);
-    console.log(`[OTP] Input hash: ${hashedInput}`);
-    console.log(`[OTP] Stored hash: ${entry.code_hash}`);
+    // Deliberately no plaintext, no hashes, no identifiers here: a mismatch
+    // log must never become an oracle for brute-forcing codes.
+    Log.info(SOURCE, 'OTP verification failed', 'OTP_VERIFY');
   }
 
   return valid;

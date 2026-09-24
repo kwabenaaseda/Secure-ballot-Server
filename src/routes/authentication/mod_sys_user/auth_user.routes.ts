@@ -166,7 +166,18 @@ Auth_user.post(
 );
 
 /**
- * POST /auth/user/logout — revokes the presented access token (jti -> token_blacklist).
+ * @swagger
+ * /auth/user/logout:
+ *   post:
+ *     summary: Revoke the current access token (logout)
+ *     tags: [Auth - User]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Logged out successfully.
+ *       401:
+ *         description: Unauthorized.
  */
 Auth_user.post(
   '/logout',
@@ -272,8 +283,22 @@ Auth_user.post(
 );
 
 /**
- * POST /auth/user/refresh — exchange a valid refresh token for a fresh
- * access + refresh pair (rotation: the presented token is blacklisted).
+ * @swagger
+ * /auth/user/refresh:
+ *   post:
+ *     summary: Rotate refresh token for a fresh access + refresh pair
+ *     tags: [Auth - User]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/RefreshTokenRequest'
+ *     responses:
+ *       200:
+ *         description: Tokens refreshed.
+ *       401:
+ *         description: Invalid or expired refresh token.
  */
 Auth_user.post('/refresh', authLimiter, NetworkContextMiddleware, RefreshTokens_Controller);
 
